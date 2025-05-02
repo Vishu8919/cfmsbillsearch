@@ -8,27 +8,27 @@ export default function Home() {
   const router = useRouter()
   const [year, setYear] = useState('2025')
   const [billNo, setBillNo] = useState('')
+  const [combinedBill, setCombinedBill] = useState('')
   const [history, setHistory] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const billNoInputRef = useRef<HTMLInputElement>(null)
+  const combinedBillInputRef = useRef<HTMLInputElement>(null)
 
   // Enhanced sidebar state for responsive behavior
   const [isDesktop, setIsDesktop] = useState(false)
 
-    // Generate years from 2018 to 2099
-    const years = Array.from({ length: 2099 - 2018 + 1 }, (_, i) => 2018 + i)
 
     // Check for credentials on mount
-    useEffect(() => {
-      const session = localStorage.getItem('cfmsSession');
-      if (!session) {
-        router.push('/login');
-      }
-    }, [router]);
-  
+  useEffect(() => {
+    const session = localStorage.getItem('cfmsSession');
+    if (!session) {
+      router.push('/login');
+    }
+  }, [router]);
+
   useEffect(() => {
     const handleResize = () => {
       setIsDesktop(window.innerWidth >= 768)
@@ -49,7 +49,26 @@ export default function Home() {
     }
   }, [])
 
-  // Auto-focus bill number input when year is 4 digits
+  // Handle the combined Bill input
+  const handleCombinedBillChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setCombinedBill(value);
+    
+    // Auto-populate year and billNo if format is correct
+    if (value.includes('-')) {
+      const [inputYear, ...rest] = value.split('-');
+      const inputBillNo = rest.join('-');
+      
+      if (/^\d{4}$/.test(inputYear)) {
+        setYear(inputYear);
+      }
+      
+      if (inputBillNo) {
+        setBillNo(inputBillNo);
+      }
+    }
+  };
+
   useEffect(() => {
     if (year.length === 4 && billNoInputRef.current) {
       billNoInputRef.current.focus()
@@ -167,6 +186,7 @@ export default function Home() {
   
       setYear('2025');
       setBillNo('');
+      setCombinedBill('');
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -234,27 +254,41 @@ export default function Home() {
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-5">
+          {/* New Combined Bill input field */}
+          <div className="relative">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Bill (YYYY-BillNumber)</label>
+            <input
+              type="text"
+              value={combinedBill}
+              onChange={handleCombinedBillChange}
+              ref={combinedBillInputRef}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+              placeholder="e.g. 2025-2358642"
+            />
+            {combinedBill && <ClearInputButton onClick={() => setCombinedBill('')} />}
+          </div>
+
           <div className="relative">
             <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
             <input
-                  type="text"
-                  value={year}
-                  onChange={(e) => {
-                    if (/^\d*$/.test(e.target.value) && e.target.value.length <= 4) {
-                      setYear(e.target.value)
+              type="text"
+              value={year}
+              onChange={(e) => {
+                if (/^\d*$/.test(e.target.value) && e.target.value.length <= 4) {
+                  setYear(e.target.value)
                       if (e.target.value.length === 4 && billNoInputRef.current) {
                         billNoInputRef.current.focus()
                       }
-                    }
-                  }}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
-                  placeholder="e.g. 2025"
-                  required
-                />
+                }
+              }}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+              placeholder="e.g. 2025"
+              required
+            />
           </div>
           <div className="relative">
             <label className="block text-sm font-medium text-gray-700 mb-1">Bill Number</label>
-            <input
+            <input  
               type="text"
               value={billNo}
               onChange={(e) => setBillNo(e.target.value)}
