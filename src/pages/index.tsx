@@ -1,41 +1,38 @@
 import { useState, useEffect, useRef } from 'react'
-import { FaRegTrashAlt } from 'react-icons/fa'
-import { FaTimes } from 'react-icons/fa'
-import { FaHistory } from 'react-icons/fa'
+import { FaRegTrashAlt, FaTimes, FaHistory } from 'react-icons/fa'
 import { useRouter } from 'next/router'
 import { motion } from 'framer-motion'
+
+interface BillHistoryItem {
+  year: string
+  billNo: string
+  timestamp: number
+  name: string
+}
 
 export default function Home() {
   const router = useRouter()
   const [year, setYear] = useState('2025')
   const [billNo, setBillNo] = useState('')
-  const [combinedBill, setCombinedBill] = useState('')
-  const [history, setHistory] = useState<any[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [history, setHistory] = useState<BillHistoryItem[]>([])
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const billNoInputRef = useRef<HTMLInputElement>(null)
-  const combinedBillInputRef = useRef<HTMLInputElement>(null)
+  const isDesktop = typeof window !== 'undefined' ? window.innerWidth >= 768 : false;
 
-  // Enhanced sidebar state for responsive behavior
-  const [isDesktop, setIsDesktop] = useState(false)
-
-
-    // Check for credentials on mount
+  // Check for credentials on mount
   useEffect(() => {
-    const session = localStorage.getItem('cfmsSession');
+    const session = localStorage.getItem('cfmsSession')
     if (!session) {
-      router.push('/login');
+      router.push('/login')
     }
-  }, [router]);
+  }, [router])
 
   useEffect(() => {
     const handleResize = () => {
-      setIsDesktop(window.innerWidth >= 768)
-      if (window.innerWidth >= 768) {
-        setIsSidebarOpen(true)
-      }
+      const desktop = window.innerWidth >= 768
+      setIsSidebarOpen(desktop)
+      setIsSidebarOpen(desktop); // Optional: auto-open sidebar on deskto
     }
     
     handleResize()
@@ -50,41 +47,20 @@ export default function Home() {
     }
   }, [])
 
-  // Handle the combined Bill input
-  const handleCombinedBillChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setCombinedBill(value);
-    
-    // Auto-populate year and billNo if format is correct
-    if (value.includes('-')) {
-      const [inputYear, ...rest] = value.split('-');
-      const inputBillNo = rest.join('-');
-      
-      if (/^\d{4}$/.test(inputYear)) {
-        setYear(inputYear);
-      }
-      
-      if (inputBillNo) {
-        setBillNo(inputBillNo);
-      }
-    }
-  };
-
   useEffect(() => {
     if (year.length === 4 && billNoInputRef.current) {
       billNoInputRef.current.focus()
     }
   }, [year])
 
-
   useEffect(() => {
     // Close sidebar when clicking outside of it
     const handleClickOutside = (event: MouseEvent) => {
-      const sidebar = document.querySelector('.sidebar') as HTMLElement;
+      const sidebar = document.querySelector('.sidebar') as HTMLElement
       if (sidebar && !sidebar.contains(event.target as Node)) {
-        setIsSidebarOpen(false);
+        setIsSidebarOpen(false)
       }
-    };
+    }
   
     if (isSidebarOpen) {
       document.addEventListener('mousedown', handleClickOutside);
@@ -93,112 +69,9 @@ export default function Home() {
     }
   
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isSidebarOpen]);
-
-  const openBillInNewTab = (year: string, billNo: string) => {
-    const session = localStorage.getItem('cfmsSession')
-    if (!session) {
-      setError('Please log in first')
-      return false
+      document.removeEventListener('mousedown', handleClickOutside)
     }
-  
-    const { authToken } = JSON.parse(session)
-    const url = `https://prdcfms.apcfss.in:44300/sap/bc/ui5_ui5/sap/zexp_billstatus/index.html?sap-client=350&billNum=${year}-${billNo}`
-    
-    // Method 1: Using window.open with credentials
-    try {
-      const newWindow = window.open('', '_blank')
-      if (newWindow) {
-        // Store credentials temporarily for the new tab
-        const tempKey = `cfms_temp_${Date.now()}`
-        localStorage.setItem(tempKey, authToken)
-        setTimeout(() => localStorage.removeItem(tempKey), 5000) // Clean up after 5s
-        
-        newWindow.location.href = `${url}?authKey=${tempKey}`
-        return true
-      }
-    } catch (e) {
-      console.error('Failed to open window:', e)
-    }
-  
-    // Fallback method if popup is blocked
-    const opened = openBillInNewTab(year, billNo);
-    if (!opened) {
-      setError('Popup was blocked - please allow popups for this site');
-    }
-    return false
-  }
-  
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-  
-    const session = localStorage.getItem('cfmsSession');
-    if (!session) {
-      setError('Please log in first');
-      setLoading(false);
-      return;
-    }
-  
-    const { authToken } = JSON.parse(session);
-  
-    try {
-      const billRes = await fetch('/api/bill', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Basic ${authToken}`,
-        },
-        body: JSON.stringify({ year, billNo }),
-      });
-  
-      const billData = await billRes.json();
-  
-      if (!billData.success) {
-        setError(billData.message || 'Failed to generate bill link');
-        return;
-      }
-  
-      // Open bill in new tab with credentials
-      const url = `https://prdcfms.apcfss.in:44300/sap/bc/ui5_ui5/sap/zexp_billstatus/index.html?sap-client=350&billNum=${year}-${billNo}`;
-      const newWindow = window.open('', '_blank');
-      
-      if (newWindow) {
-        newWindow.document.write(`
-          <script>
-            localStorage.setItem('cfmsSession', '${JSON.stringify({authToken})}');
-            window.location.href = '${url}';
-          </script>
-        `);
-        newWindow.document.close();
-      } else {
-        setError('Popup was blocked - please allow popups');
-      }
-  
-      // Add to history
-      const newItem = { year, billNo, timestamp: Date.now(), name: '' };
-      const updatedHistory = [newItem, ...history].slice(0, 30);
-      setHistory(updatedHistory);
-      localStorage.setItem('billHistory', JSON.stringify(updatedHistory));
-  
-      setYear('2025');
-      setBillNo('');
-      setCombinedBill('');
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError('An unexpected error occurred');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-  
+  }, [isSidebarOpen])
 
   const handleDelete = (index: number) => {
     const updatedHistory = history.filter((_, idx) => idx !== index)
@@ -224,66 +97,55 @@ export default function Home() {
     />
   )
 
-  // Enhanced input clear buttons
-  const ClearInputButton = ({ onClick }: { onClick: () => void }) => (
-    <button
-      type="button"
-      onClick={onClick}
-      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-    >
-      <FaTimes className="w-4 h-4" />
-    </button>
-  )
-
   return (
     <main className="min-h-screen bg-gradient-to-br from-gray-900 via-indigo-900 to-violet-900 flex flex-col items-center justify-center p-4 relative overflow-hidden">
-    {/* Enhanced Animated background elements */}
-  <div className="absolute inset-0 overflow-hidden">
-    <div className="absolute top-0 left-0 w-64 h-64 bg-violet-900 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-blob"></div>
-    <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-900 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
-    <div className="absolute bottom-0 left-1/2 w-64 h-64 bg-purple-900 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
-  </div>
+      {/* Background elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute top-0 left-0 w-64 h-64 bg-violet-900 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-blob"></div>
+        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-900 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+        <div className="absolute bottom-0 left-1/2 w-64 h-64 bg-purple-900 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
+      </div>
 
   {/* Page Title - Centered at top */}
 
-    {/* Centered content container */}
-  <div className="w-full max-w-md mx-auto flex flex-col items-center justify-center z-10">
-    {/* Page Title with decorative elements */}
-    <motion.div 
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="w-full text-center mb-8"
-    >
-      <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-purple-300 tracking-tighter">
-        AP CFMS BILL SEARCH
-      </h1>
-      <div className="mt-4 h-1 w-24 mx-auto bg-gradient-to-r from-indigo-400/50 to-purple-400/50 rounded-full"></div>
-    </motion.div>
+      {/* Centered content container */}
+      <div className="w-full max-w-md mx-auto flex flex-col items-center justify-center z-10">
+        {/* Page Title */}
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full text-center mb-8"
+        >
+          <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-purple-300 tracking-tighter">
+            AP CFMS BILL SEARCH
+          </h1>
+          <div className="mt-4 h-1 w-24 mx-auto bg-gradient-to-r from-indigo-400/50 to-purple-400/50 rounded-full"></div>
+        </motion.div>
 
-    {/* Backdrop for mobile sidebar */}
-    <Backdrop />
+        {/* Backdrop for mobile sidebar */}
+        <Backdrop />
 
-    {/* Bill Search Form Container with decorative elements */}
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="w-full bg-gradient-to-br from-indigo-900/80 to-purple-900/80 backdrop-blur-sm p-8 rounded-2xl shadow-2xl border border-white/20 relative"
-    >
+        {/* Bill Search Form Container */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full bg-gradient-to-br from-indigo-900/80 to-purple-900/80 backdrop-blur-sm p-8 rounded-2xl shadow-2xl border border-white/20 relative"
+        >
       {/* Decorative dots */}
       <div className="absolute -top-2 -left-2 w-4 h-4 rounded-full bg-purple-400/50"></div>
       <div className="absolute -bottom-2 -right-2 w-4 h-4 rounded-full bg-indigo-400/50"></div>
       
       {/* Form title with underline */}
-      <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-200 to-purple-200">
-          Enter Your Bill Number
-        </h2>
-        <div className="mt-2 h-1 w-16 mx-auto bg-gradient-to-r from-indigo-400/50 to-purple-400/50 rounded-full"></div>
-      </div>
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-200 to-purple-200">
+              Enter Your Bill Number
+            </h2>
+            <div className="mt-2 h-1 w-16 mx-auto bg-gradient-to-r from-indigo-400/50 to-purple-400/50 rounded-full"></div>
+          </div>
 
 
-      {/* Form inputs */}
-      <form className="space-y-5">
+          {/* Form inputs */}
+          <form className="space-y-5">
         {/* Bill Number Field */}
         <div>
           <label className="block text-sm font-medium text-indigo-200 mb-1">
@@ -297,50 +159,59 @@ export default function Home() {
         </div>
 
         {/* Year Field */}
-        <div>
-          <label className="block text-sm font-medium text-indigo-200 mb-1">
-            Year
-          </label>
-          <input
-            type="text"
-            className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-indigo-200/70 focus:outline-none focus:ring-2 focus:ring-purple-400"
-            placeholder="e.g. 2025"
-          />
-        </div>
+            <div>
+              <label className="block text-sm font-medium text-indigo-200 mb-1">
+                Year
+              </label>
+              <input
+                type="text"
+                value={year}
+                onChange={(e) => {
+                  if (/^\d*$/.test(e.target.value)) {
+                    setYear(e.target.value)
+                  }
+                }}
+                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-indigo-200/70 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                placeholder="e.g. 2025"
+                ref={billNoInputRef}
+              />
+            </div>
 
         {/* Bill Number Field */}
-        <div>
-          <label className="block text-sm font-medium text-indigo-200 mb-1">
-            Bill Number
-          </label>
-          <input
-            type="text"
-            className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-indigo-200/70 focus:outline-none focus:ring-2 focus:ring-purple-400"
-            placeholder="e.g. 2575612"
-          />
-        </div>
+            <div>
+              <label className="block text-sm font-medium text-indigo-200 mb-1">
+                Bill Number
+              </label>
+              <input
+                type="text"
+                value={billNo}
+                onChange={(e) => setBillNo(e.target.value)}
+                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-indigo-200/70 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                placeholder="e.g. 2575612"
+              />
+            </div>
 
         {/* Submit Button */}
-        <button
-          type="submit"
-          className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl shadow-lg hover:from-indigo-500 hover:to-purple-500 transition-all mt-6"
-        >
-          Search Bill
-        </button>
-      </form>
-    </motion.div>
-  </div>
+            <button
+              type="submit"
+              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl shadow-lg hover:from-indigo-500 hover:to-purple-500 transition-all mt-6"
+            >
+              Search Bill
+            </button>
+          </form>
+        </motion.div>
+      </div>
 
 
-<motion.div 
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    transition={{ delay: 0.3 }}
-    className="fixed bottom-6 left-0 right-0 text-center text-xs text-indigo-200/60 z-10"
-  >
-    <p>© 2025 Vishnu Thulasi</p>
-    <p className="mt-1">Website designed & developed by Vishnu Thulasi</p>
-  </motion.div>
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.3 }}
+        className="fixed bottom-6 left-0 right-0 text-center text-xs text-indigo-200/60 z-10"
+      >
+        <p>© 2025 Vishnu Thulasi</p>
+        <p className="mt-1">Website designed by Vishnu Thulasi</p>
+      </motion.div>
 
 
      {/* Enhanced Sidebar */}
