@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
 import { FaRegTrashAlt, FaTimes, FaHistory } from 'react-icons/fa'
-import { useRouter } from 'next/router'
 import { motion } from 'framer-motion'
 
 interface BillHistoryItem {
@@ -11,7 +10,6 @@ interface BillHistoryItem {
 }
 
 export default function Home() {
-  const router = useRouter()
   const [year, setYear] = useState('2025')
   const [billNo, setBillNo] = useState('')
   const [history, setHistory] = useState<BillHistoryItem[]>([])
@@ -20,13 +18,7 @@ export default function Home() {
   const billNoInputRef = useRef<HTMLInputElement>(null)
   const isDesktop = typeof window !== 'undefined' ? window.innerWidth >= 768 : false;
 
-  // Check for credentials on mount
-  useEffect(() => {
-    const session = localStorage.getItem('cfmsSession')
-    if (!session) {
-      router.push('/login')
-    }
-  }, [router])
+  
 
   useEffect(() => {
     const handleResize = () => {
