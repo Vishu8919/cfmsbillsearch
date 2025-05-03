@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { FaRegTrashAlt, FaTimes, FaHistory } from 'react-icons/fa'
 import { motion } from 'framer-motion'
+import { FaPaste } from 'react-icons/fa';
+
 
 interface BillHistoryItem {
   year: string
@@ -16,9 +18,75 @@ export default function Home() {
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const billNoInputRef = useRef<HTMLInputElement>(null)
-  const isDesktop = typeof window !== 'undefined' ? window.innerWidth >= 768 : false;
+  const [isDesktop, setIsDesktop] = useState(false)
+  const [fullBill, setFullBill] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
 
   
+const handlePasteClick = async () => {
+  try {
+    const text = await navigator.clipboard.readText();
+    setFullBill(text);
+    inputRef.current?.focus();
+  } catch (err) {
+    console.error('Failed to paste:', err);
+  }
+};
+
+const handleSearch = () => {
+  // If fullBill has value, use that
+  if (fullBill && fullBill.includes('-')) {
+    const [yearPart, billNoPart] = fullBill.split('-').map(part => part.trim());
+    setYear(yearPart);
+    setBillNo(billNoPart);
+    
+    const newItem = {
+      year: yearPart,
+      billNo: billNoPart,
+      timestamp: Date.now(),
+      name: '',
+    };
+
+    const updatedHistory = [newItem, ...history];
+    setHistory(updatedHistory);
+    localStorage.setItem('billHistory', JSON.stringify(updatedHistory));
+
+    const url = `https://prdcfms.apcfss.in:44300/sap/bc/ui5_ui5/sap/zexp_billstatus/index.html?sap-client=350&billNum=${yearPart}-${billNoPart}`;
+    window.open(url, '_blank');
+    setFullBill('');
+    return;
+  }
+
+  // Otherwise use the separate year and billNo fields
+  if (year && billNo) {
+    const newItem = {
+      year,
+      billNo,
+      timestamp: Date.now(),
+      name: '',
+    };
+
+    const updatedHistory = [newItem, ...history];
+    setHistory(updatedHistory);
+    localStorage.setItem('billHistory', JSON.stringify(updatedHistory));
+
+    const url = `https://prdcfms.apcfss.in:44300/sap/bc/ui5_ui5/sap/zexp_billstatus/index.html?sap-client=350&billNum=${year}-${billNo}`;
+    window.open(url, '_blank');
+    setBillNo('');
+  }
+};
+
+
+
+  useEffect(() => {
+    const checkDesktop = () => {
+      setIsDesktop(window.innerWidth >= 768)
+    }
+    checkDesktop()
+    window.addEventListener('resize', checkDesktop)
+    return () => window.removeEventListener('resize', checkDesktop)
+  }, [])
+
 
   useEffect(() => {
     const handleResize = () => {
@@ -119,91 +187,126 @@ export default function Home() {
 
         {/* Bill Search Form Container */}
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full bg-gradient-to-br from-indigo-900/80 to-purple-900/80 backdrop-blur-sm p-8 rounded-2xl shadow-2xl border border-white/20 relative"
-        >
-      {/* Decorative dots */}
-      <div className="absolute -top-2 -left-2 w-4 h-4 rounded-full bg-purple-400/50"></div>
-      <div className="absolute -bottom-2 -right-2 w-4 h-4 rounded-full bg-indigo-400/50"></div>
-      
-      {/* Form title with underline */}
-          <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-200 to-purple-200">
-              Enter Your Bill Number
-            </h2>
-            <div className="mt-2 h-1 w-16 mx-auto bg-gradient-to-r from-indigo-400/50 to-purple-400/50 rounded-full"></div>
-          </div>
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  className="w-full bg-gradient-to-br from-indigo-900/80 to-purple-900/80 backdrop-blur-sm p-8 rounded-2xl shadow-2xl border border-white/20 relative"
+>
+  {/* Decorative dots */}
+  <div className="absolute -top-2 -left-2 w-4 h-4 rounded-full bg-purple-400/50"></div>
+  <div className="absolute -bottom-2 -right-2 w-4 h-4 rounded-full bg-indigo-400/50"></div>
 
+  {/* Form title with underline */}
+  <div className="text-center mb-6">
+    <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-200 to-purple-200">
+      Enter Your Bill Number
+    </h2>
+    <div className="mt-2 h-1 w-16 mx-auto bg-gradient-to-r from-indigo-400/50 to-purple-400/50 rounded-full"></div>
+  </div>
 
-          {/* Form inputs */}
-          <form className="space-y-5">
-        {/* Bill Number Field */}
-        <div>
-          <label className="block text-sm font-medium text-indigo-200 mb-1">
-            Bill (YYYY-BillNumber)
-          </label>
-          <input
-            type="text"
-            className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-indigo-200/70 focus:outline-none focus:ring-2 focus:ring-purple-400"
-            placeholder="e.g. 2025-2558642"
-          />
-        </div>
+  {/* Form inputs */}
+  <form
+    className="space-y-5"
+    onSubmit={(e) => {
+      e.preventDefault();
+      handleSearch();
+    }}
+  >
+    {/* Bill Number Field */}
+    <div className="relative">
+      <label className="block text-sm font-medium text-indigo-200 mb-1">
+        Bill (YYYY-BillNumber)
+      </label>
+      <input
+        ref={inputRef}
+        type="text"
+        value={fullBill}
+        onChange={(e) => {
+          setFullBill(e.target.value);
+          // Auto-populate year and billNo when pasting
+          if (e.target.value.includes('-')) {
+            const [yearPart, billNoPart] = e.target.value.split('-').map(part => part.trim());
+            setYear(yearPart);
+            setBillNo(billNoPart);
+          }
+        }}
+        className="w-full px-4 py-3 pr-12 bg-white/10 border border-white/20 rounded-xl text-white placeholder-indigo-200/70 focus:outline-none focus:ring-2 focus:ring-purple-400"
+        placeholder="e.g. 2025-2558642"
+      />
+      <button
+        type="button"
+        onClick={async () => {
+          await handlePasteClick();
+          // After pasting, check if we need to auto-populate
+          if (fullBill.includes('-')) {
+            const [yearPart, billNoPart] = fullBill.split('-').map(part => part.trim());
+            setYear(yearPart);
+            setBillNo(billNoPart);
+          }
+        }}
+        className="absolute right-3 top-[60%] transform -translate-y-1/2 text-indigo-300 hover:text-white"
+        title="Paste from clipboard"
+      >
+        <FaPaste size={20} />
+      </button>
+    </div>
 
-        {/* Year Field */}
-            <div>
-              <label className="block text-sm font-medium text-indigo-200 mb-1">
-                Year
-              </label>
-              <input
-                type="text"
-                value={year}
-                onChange={(e) => {
-                  if (/^\d*$/.test(e.target.value)) {
-                    setYear(e.target.value)
-                  }
-                }}
-                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-indigo-200/70 focus:outline-none focus:ring-2 focus:ring-purple-400"
-                placeholder="e.g. 2025"
-                ref={billNoInputRef}
-              />
-            </div>
+    {/* Year Field */}
+    <div>
+      <label className="block text-sm font-medium text-indigo-200 mb-1">
+        Year
+      </label>
+      <input
+        type="text"
+        value={year}
+        onChange={(e) => {
+          if (/^\d*$/.test(e.target.value)) {
+            setYear(e.target.value);
+          }
+        }}
+        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-indigo-200/70 focus:outline-none focus:ring-2 focus:ring-purple-400"
+        placeholder="e.g. 2025"
+        ref={billNoInputRef}
+      />
+    </div>
 
-        {/* Bill Number Field */}
-            <div>
-              <label className="block text-sm font-medium text-indigo-200 mb-1">
-                Bill Number
-              </label>
-              <input
-                type="text"
-                value={billNo}
-                onChange={(e) => setBillNo(e.target.value)}
-                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-indigo-200/70 focus:outline-none focus:ring-2 focus:ring-purple-400"
-                placeholder="e.g. 2575612"
-              />
-            </div>
+    {/* Bill Number Field */}
+    <div>
+      <label className="block text-sm font-medium text-indigo-200 mb-1">
+        Bill Number
+      </label>
+      <input
+        type="text"
+        value={billNo}
+        onChange={(e) => setBillNo(e.target.value)}
+        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-indigo-200/70 focus:outline-none focus:ring-2 focus:ring-purple-400"
+        placeholder="e.g. 2575612"
+      />
+    </div>
 
-        {/* Submit Button */}
-            <button
-              type="submit"
-              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl shadow-lg hover:from-indigo-500 hover:to-purple-500 transition-all mt-6"
-            >
-              Search Bill
-            </button>
-          </form>
-        </motion.div>
+    {/* Submit Button */}
+    <button
+      type="submit"
+      className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl shadow-lg hover:from-indigo-500 hover:to-purple-500 transition-all mt-6"
+    >
+      Search Bill
+    </button>
+  </form>
+</motion.div>
+
       </div>
 
 
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.3 }}
-        className="fixed bottom-6 left-0 right-0 text-center text-xs text-indigo-200/60 z-10"
-      >
+          <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ delay: 0.3 }}
+      className="fixed bottom-0 left-0 right-0 py-3 bg-gradient-to-t from-gray-900/90 to-transparent backdrop-blur-sm text-center text-xs text-indigo-200/60 z-10"
+    >
+      <div className="container mx-auto px-4">
         <p>© 2025 Vishnu Thulasi</p>
         <p className="mt-1">Website designed by Vishnu Thulasi</p>
-      </motion.div>
+      </div>
+    </motion.div>
 
 
      {/* Enhanced Sidebar */}
