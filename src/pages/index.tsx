@@ -128,11 +128,7 @@ const handleSearch = () => {
     }
   }, []);
 
-  useEffect(() => {
-    if (year.length === 4 && billNoInputRef.current) {
-      billNoInputRef.current.focus();
-    }
-  }, [year]);
+  
 
   useEffect(() => {
     // Close sidebar when clicking outside of it
@@ -242,22 +238,35 @@ const handleSearch = () => {
         type="text"
         value={fullBill}
         onChange={(e) => {
-          setFullBill(e.target.value);
-          if (e.target.value.includes('-')) {
-            const [yearPart, billNoPart] = e.target.value.split('-').map(part => part.trim());
-            // Validate year part is 4 digits
+          const value = e.target.value;
+          setFullBill(value);
+          
+          // Maintain cursor position
+          const prevCursorPos = e.target.selectionStart || 0;
+          
+          if (value.includes('-')) {
+            const [yearPart, billNoPart] = value.split('-').map(part => part.trim());
+            
+            // Only update year if it's valid
             if (/^\d{4}$/.test(yearPart)) {
               setYear(yearPart);
-              // Validate bill number is digits only
-              if (/^\d+$/.test(billNoPart)) {
-                setBillNo(billNoPart);
-                if (billNoInputRef.current) {
-                  billNoInputRef.current.focus();
-                }
-              }
+            }
+            
+            // Only update billNo if it's valid numbers
+            if (/^\d*$/.test(billNoPart)) { // Changed to allow empty
+              setBillNo(billNoPart);
             }
           }
+        
+          // Restore cursor position after state update
+          requestAnimationFrame(() => {
+            if (inputRef.current) {
+              inputRef.current.selectionStart = prevCursorPos;
+              inputRef.current.selectionEnd = prevCursorPos;
+            }
+          });
         }}
+
         className="w-full px-4 py-3 pr-12 bg-white/10 border border-white/20 rounded-xl text-white placeholder-indigo-200/70 focus:outline-none focus:ring-2 focus:ring-purple-400"
         placeholder="e.g. 2025-2558642"
       />
