@@ -12,7 +12,7 @@ interface BillHistoryItem {
 }
 
 export default function Home() {
-  const [year, setYear] = useState('2025')
+  const [year, setYear] = useState(new Date().getFullYear().toString());
   const [billNo, setBillNo] = useState('')
   const [history, setHistory] = useState<BillHistoryItem[]>([])
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
@@ -21,17 +21,25 @@ export default function Home() {
   const [isDesktop, setIsDesktop] = useState(false)
   const [fullBill, setFullBill] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const sidebarRef = useRef<HTMLDivElement>(null);
 
   
-const handlePasteClick = async () => {
-  try {
-    const text = await navigator.clipboard.readText();
-    setFullBill(text);
-    inputRef.current?.focus();
-  } catch (err) {
-    console.error('Failed to paste:', err);
-  }
-};
+  const handlePasteClick = async () => {
+    try {
+      // Check if clipboard API is available
+      if (!navigator.clipboard) {
+        throw new Error("Clipboard API not available");
+      }
+      
+      const text = await navigator.clipboard.readText();
+      setFullBill(text);
+      inputRef.current?.focus();
+    } catch (err) {
+      console.error('Failed to paste:', err);
+      // Add user feedback here (e.g., toast notification)
+      alert("Couldn't access clipboard. Please paste manually.");
+    }
+  };
 
 const handleSearch = () => {
   // If fullBill has value, use that
@@ -92,7 +100,6 @@ const handleSearch = () => {
     const handleResize = () => {
       const desktop = window.innerWidth >= 768
       setIsSidebarOpen(desktop)
-      setIsSidebarOpen(desktop); // Optional: auto-open sidebar on deskto
     }
     
     handleResize()
@@ -101,26 +108,40 @@ const handleSearch = () => {
   }, [])
 
   useEffect(() => {
-    const stored = localStorage.getItem('billHistory')
-    if (stored) {
-      setHistory(JSON.parse(stored))
+    try {
+      const stored = localStorage.getItem('billHistory');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          setHistory(parsed);
+        } else {
+          // Reset if data is not an array
+          localStorage.removeItem('billHistory');
+          setHistory([]);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load history:', err);
+      // Clear corrupted data
+      localStorage.removeItem('billHistory');
+      setHistory([]);
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
     if (year.length === 4 && billNoInputRef.current) {
-      billNoInputRef.current.focus()
+      billNoInputRef.current.focus();
     }
-  }, [year])
+  }, [year]);
 
   useEffect(() => {
     // Close sidebar when clicking outside of it
     const handleClickOutside = (event: MouseEvent) => {
-      const sidebar = document.querySelector('.sidebar') as HTMLElement
-      if (sidebar && !sidebar.contains(event.target as Node)) {
-        setIsSidebarOpen(false)
+      if (sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
+        setIsSidebarOpen(false);
       }
     }
+    
   
     if (isSidebarOpen) {
       document.addEventListener('mousedown', handleClickOutside);
@@ -222,11 +243,19 @@ const handleSearch = () => {
         value={fullBill}
         onChange={(e) => {
           setFullBill(e.target.value);
-          // Auto-populate year and billNo when pasting
           if (e.target.value.includes('-')) {
             const [yearPart, billNoPart] = e.target.value.split('-').map(part => part.trim());
-            setYear(yearPart);
-            setBillNo(billNoPart);
+            // Validate year part is 4 digits
+            if (/^\d{4}$/.test(yearPart)) {
+              setYear(yearPart);
+              // Validate bill number is digits only
+              if (/^\d+$/.test(billNoPart)) {
+                setBillNo(billNoPart);
+                if (billNoInputRef.current) {
+                  billNoInputRef.current.focus();
+                }
+              }
+            }
           }
         }}
         className="w-full px-4 py-3 pr-12 bg-white/10 border border-white/20 rounded-xl text-white placeholder-indigo-200/70 focus:outline-none focus:ring-2 focus:ring-purple-400"
@@ -259,8 +288,13 @@ const handleSearch = () => {
         type="text"
         value={year}
         onChange={(e) => {
-          if (/^\d*$/.test(e.target.value)) {
+          // Only allow 4 digits max and only numbers
+          if (/^\d{0,4}$/.test(e.target.value)) {
             setYear(e.target.value);
+            // Auto-focus to billNo when year is complete
+            if (e.target.value.length === 4 && billNoInputRef.current) {
+              billNoInputRef.current.focus();
+            }
           }
         }}
         className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-indigo-200/70 focus:outline-none focus:ring-2 focus:ring-purple-400"
@@ -277,7 +311,12 @@ const handleSearch = () => {
       <input
         type="text"
         value={billNo}
-        onChange={(e) => setBillNo(e.target.value)}
+        onChange={(e) => {
+          // Only allow numbers and limit length (adjust max length as needed)
+          if (/^\d{0,10}$/.test(e.target.value)) {
+            setBillNo(e.target.value);
+          }
+        }}
         className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-indigo-200/70 focus:outline-none focus:ring-2 focus:ring-purple-400"
         placeholder="e.g. 2575612"
       />
@@ -311,6 +350,7 @@ const handleSearch = () => {
 
      {/* Enhanced Sidebar */}
 <motion.div
+ref={sidebarRef} 
   initial={{ x: '100%' }}
   animate={{ x: isSidebarOpen ? 0 : '100%' }}
   className={`fixed right-0 top-0 h-full bg-gradient-to-b from-indigo-900/90 to-violet-900/90 backdrop-blur-xl p-5 rounded-l-2xl shadow-2xl border-r border-t border-b border-white/10 z-20 ${
@@ -341,7 +381,7 @@ const handleSearch = () => {
     <ul className="space-y-3 max-h-[calc(100vh-150px)] overflow-y-auto pr-2 custom-scrollbar">
       {history.map((item, idx) => (
         <motion.li
-          key={`${item.year}-${item.billNo}-${idx}`}
+          key={`${item.year}-${item.billNo}-${item.timestamp}`}
           initial={{ opacity: 0, x: 10 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: idx * 0.05 }}
