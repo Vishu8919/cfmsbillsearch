@@ -163,7 +163,7 @@ export default function Home() {
     <>
       {/* ── Per-page SEO Head (page-level title + canonical) ── */}
       <Head>
-        <title>Andhra Pradesh CFMS Bills Search | Andhra Pradesh Treasury Bills</title>
+        <title> CFMS Bills Search Andhra Pradesh </title>
         <meta
           name="description"
           content="Check Andhra Pradesh CFMS bill status online instantly. Search AP treasury payment status, pending bills, and payment releases using bill number. Fast and free CFMS bill tracker."
@@ -194,10 +194,10 @@ export default function Home() {
           >
             {/* h1 is important for SEO — keep this exact text */}
             <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-purple-300 tracking-tighter">
-              AP CFMS Bill Search
+              CFMS Bill Search
             </h1>
             <p className="mt-2 text-indigo-200/70 text-sm">
-              Search your Bill
+              Andhra Pradesh CFMS Bills Status Checker - Check your AP treasury bill status instantly by entering the year and bill number.
             </p>
             <div className="mt-4 h-1 w-24 mx-auto bg-gradient-to-r from-indigo-400/50 to-purple-400/50 rounded-full"></div>
           </motion.div>
