@@ -163,12 +163,12 @@ export default function Home() {
     <>
       {/* ── Per-page SEO Head (page-level title + canonical) ── */}
       <Head>
-        <title>AP CFMS Bill Status Checker | Andhra Pradesh Treasury Bills</title>
+        <title>Andhra Pradesh CFMS Bills Search | Andhra Pradesh Treasury Bills</title>
         <meta
           name="description"
           content="Check Andhra Pradesh CFMS bill status online instantly. Search AP treasury payment status, pending bills, and payment releases using bill number. Fast and free CFMS bill tracker."
         />
-        <link rel="canonical" href="https://www.cfmsbillsstatus.online/" />
+        <link rel="canonical" href="https://www.cfmsbillsstatus.online/bill-search" />
       </Head>
 
       <main className="min-h-screen bg-gradient-to-br from-gray-900 via-indigo-900 to-violet-900 flex flex-col items-center justify-center p-4 relative overflow-hidden">

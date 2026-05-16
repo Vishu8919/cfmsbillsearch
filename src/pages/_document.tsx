@@ -18,6 +18,9 @@ export default function Document() {
         <meta name="robots" content="index, follow" />
         <meta name="googlebot" content="index, follow" />
         <link rel="canonical" href="https://www.cfmsbillsstatus.online/" />
+        <link rel="manifest" href="/site.webmanifest" />
+        <link rel="icon" href="/favicon.ico" />
+        <meta name="theme-color" content="#4f46e5" />
 
         {/* ── Open Graph (for social sharing & richer Google previews) ── */}
         <meta property="og:type" content="website" />
