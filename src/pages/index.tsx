@@ -205,7 +205,7 @@ export default function Home() {
                 CFMS Bill Status
               </h1>
               <p className="mt-2 text-indigo-200/70 text-xs sm:text-sm">
-                CFMS Bills Status Checker AP — Search your bill number
+                CFMS Bills Status Checker AP - Search your bill number
               </p>
               <div className="mt-3 h-1 w-24 mx-auto bg-gradient-to-r from-indigo-400/50 to-purple-400/50 rounded-full"></div>
             </motion.div>
