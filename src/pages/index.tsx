@@ -32,7 +32,7 @@ function AdUnit({ adSlot, adFormat = 'auto', style }: AdUnitProps) {
       <ins
         className="adsbygoogle"
         style={{ display: 'block' }}
-        data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+        data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"  // ← replace with your Publisher ID
         data-ad-slot={adSlot}
         data-ad-format={adFormat}
         data-full-width-responsive="true"
@@ -104,8 +104,6 @@ export default function Home() {
     return () => window.removeEventListener('resize', checkDesktop)
   }, [])
 
-  
-
   useEffect(() => {
     try {
       const stored = localStorage.getItem('billHistory')
@@ -163,7 +161,6 @@ export default function Home() {
         <link rel="canonical" href="https://www.cfmsbillsstatus.online/" />
       </Head>
 
-      {/* iOS Safari fix: use 100dvh so viewport excludes browser chrome top/bottom bars */}
       <main
         className="bg-gradient-to-br from-gray-900 via-indigo-900 to-violet-900 flex flex-col items-center relative"
         style={{ minHeight: '100dvh', paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}
@@ -175,143 +172,185 @@ export default function Home() {
           <div className="absolute bottom-0 left-1/2 w-64 h-64 bg-purple-900 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
         </div>
 
-        {/* Top Banner Ad */}
-        <div className="w-full max-w-2xl mx-auto z-10 px-4 mt-4 mb-2">
-          <AdUnit adSlot="1234567890" adFormat="horizontal" style={{ minHeight: 90 }} />
-        </div>
+        {/* ── Three-column layout (desktop: left-ad | center-form | right-ad) ── */}
+        <div
+          className="relative z-10 w-full flex-1 flex items-center justify-center"
+          style={{ minHeight: '100dvh' }}
+        >
 
-        {/* Main content */}
-        <div className="w-full max-w-md mx-auto flex flex-col items-center z-10 px-4 flex-1 justify-center">
-
-          {/* Title */}
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="w-full text-center mb-6"
-          >
-            <h1 className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-purple-300 tracking-tighter">
-              CFMS Bill Status
-            </h1>
-            <p className="mt-2 text-indigo-200/70 text-xs sm:text-sm">
-              CFMS Bills Status Checker AP — Search your bill number
-            </p>
-            <div className="mt-3 h-1 w-24 mx-auto bg-gradient-to-r from-indigo-400/50 to-purple-400/50 rounded-full"></div>
-          </motion.div>
-
-          <Backdrop />
-
-          {/* Search Form Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="w-full bg-gradient-to-br from-indigo-900/80 to-purple-900/80 backdrop-blur-sm p-6 sm:p-8 rounded-2xl shadow-2xl border border-white/20 relative"
-          >
-            <div className="absolute -top-2 -left-2 w-4 h-4 rounded-full bg-purple-400/50"></div>
-            <div className="absolute -bottom-2 -right-2 w-4 h-4 rounded-full bg-indigo-400/50"></div>
-
-            {/* Paste full bill */}
-            <div className="mb-5">
-              <label className="block text-sm font-medium text-indigo-200 mb-1">
-                Enter Full Bill Number
-              </label>
-              <div className="flex gap-2">
-                <input
-                  ref={inputRef}
-                  type="text"
-                  inputMode="text"
-                  value={fullBill}
-                  onChange={(e) => setFullBill(e.target.value)}
-                  placeholder="e.g. 2026-123456"
-                  className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-indigo-200/70 focus:outline-none focus:ring-2 focus:ring-purple-400 text-base"
-                />
-                <button
-                  type="button"
-                  onClick={handlePasteClick}
-                  className="px-4 py-3 bg-indigo-600/60 hover:bg-indigo-500/60 border border-white/20 rounded-xl text-white transition-all flex-shrink-0"
-                  title="Paste from clipboard"
-                >
-                  <FaPaste />
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 mb-5">
-              <div className="flex-1 h-px bg-white/10"></div>
-              <span className="text-indigo-200/50 text-xs">OR</span>
-              <div className="flex-1 h-px bg-white/10"></div>
-            </div>
-
-            <form
-              onSubmit={(e) => { e.preventDefault(); handleSearch() }}
-              className="space-y-4"
-            >
-              <div>
-                <label className="block text-sm font-medium text-indigo-200 mb-1">Year</label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={year}
-                  onChange={(e) => { if (/^\d{0,4}$/.test(e.target.value)) setYear(e.target.value) }}
-                  onKeyDown={(e) => { if (e.key === 'Enter') billNoInputRef.current?.focus() }}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-indigo-200/70 focus:outline-none focus:ring-2 focus:ring-purple-400 text-base"
-                  placeholder="e.g. 2026"
-                  ref={billNoInputRef}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-indigo-200 mb-1">Bill Number</label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={billNo}
-                  onChange={(e) => { if (/^\d{0,10}$/.test(e.target.value)) setBillNo(e.target.value) }}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-indigo-200/70 focus:outline-none focus:ring-2 focus:ring-purple-400 text-base"
-                  placeholder="e.g. 2575612"
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl shadow-lg hover:from-indigo-500 hover:to-purple-500 transition-all"
-              >
-                Search Bill
-              </button>
-            </form>
-          </motion.div>
-
-          {/* In-feed Ad */}
-          <div className="w-full mt-5">
-            <AdUnit adSlot="0987654321" adFormat="auto" style={{ minHeight: 100 }} />
+          {/* ── LEFT AD COLUMN — desktop only ──────────────────────────────────
+              Uncomment the AdUnit inside after AdSense is approved.
+              Replace SLOT_ID_LEFT with your real vertical ad slot ID.
+          ─────────────────────────────────────────────────────────────────── */}
+          <div className="hidden lg:flex flex-col items-center justify-center w-[160px] xl:w-[200px] flex-shrink-0 self-stretch px-2">
+            {/* ── ADSENSE LEFT — uncomment after approval ──
+            <AdUnit
+              adSlot="SLOT_ID_LEFT"
+              adFormat="vertical"
+              style={{ width: '160px', minHeight: '600px' }}
+            />
+            ── END ADSENSE LEFT ── */}
           </div>
 
-          {/* Footer links */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-            className="w-full mt-6 text-center text-xs text-indigo-200/50 space-y-2"
-          >
-            <p>© 2026 Vishnu Thulasi <br/> This website was designed by Vishnu Thulasi </p>
-            
-            <div className="flex items-center justify-center gap-4 flex-wrap">
-              <Link
-                href="/about"
-                className="hover:text-indigo-300 transition-colors underline underline-offset-2"
+          {/* ── CENTER CONTENT COLUMN ─────────────────────────────────────── */}
+          <div className="w-full max-w-md mx-auto flex flex-col items-center px-4 py-8">
+
+            {/* Title */}
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="w-full text-center mb-6"
+            >
+              <h1 className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-purple-300 tracking-tighter">
+                CFMS Bill Status
+              </h1>
+              <p className="mt-2 text-indigo-200/70 text-xs sm:text-sm">
+                CFMS Bills Status Checker AP — Search your bill number
+              </p>
+              <div className="mt-3 h-1 w-24 mx-auto bg-gradient-to-r from-indigo-400/50 to-purple-400/50 rounded-full"></div>
+            </motion.div>
+
+            <Backdrop />
+
+            {/* Search Form Card */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="w-full bg-gradient-to-br from-indigo-900/80 to-purple-900/80 backdrop-blur-sm p-6 sm:p-8 rounded-2xl shadow-2xl border border-white/20 relative"
+            >
+              <div className="absolute -top-2 -left-2 w-4 h-4 rounded-full bg-purple-400/50"></div>
+              <div className="absolute -bottom-2 -right-2 w-4 h-4 rounded-full bg-indigo-400/50"></div>
+
+              {/* Paste full bill */}
+              <div className="mb-5">
+                <label className="block text-sm font-medium text-indigo-200 mb-1">
+                  Enter Full Bill Number
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    inputMode="text"
+                    value={fullBill}
+                    onChange={(e) => setFullBill(e.target.value)}
+                    placeholder="e.g. 2026-123456"
+                    className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-indigo-200/70 focus:outline-none focus:ring-2 focus:ring-purple-400 text-base"
+                  />
+                  <button
+                    type="button"
+                    onClick={handlePasteClick}
+                    className="px-4 py-3 bg-indigo-600/60 hover:bg-indigo-500/60 border border-white/20 rounded-xl text-white transition-all flex-shrink-0"
+                    title="Paste from clipboard"
+                  >
+                    <FaPaste />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 mb-5">
+                <div className="flex-1 h-px bg-white/10"></div>
+                <span className="text-indigo-200/50 text-xs">OR</span>
+                <div className="flex-1 h-px bg-white/10"></div>
+              </div>
+
+              <form
+                onSubmit={(e) => { e.preventDefault(); handleSearch() }}
+                className="space-y-4"
               >
-                About &amp; How to Use
-              </Link>
-              <span className="text-indigo-200/20">·</span>
-              <Link
-                href="/privacy-policy"
-                className="hover:text-indigo-300 transition-colors underline underline-offset-2"
-              >
-                Privacy Policy
-              </Link>
+                <div>
+                  <label className="block text-sm font-medium text-indigo-200 mb-1">Year</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={year}
+                    onChange={(e) => { if (/^\d{0,4}$/.test(e.target.value)) setYear(e.target.value) }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') billNoInputRef.current?.focus() }}
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-indigo-200/70 focus:outline-none focus:ring-2 focus:ring-purple-400 text-base"
+                    placeholder="e.g. 2026"
+                    ref={billNoInputRef}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-indigo-200 mb-1">Bill Number</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={billNo}
+                    onChange={(e) => { if (/^\d{0,10}$/.test(e.target.value)) setBillNo(e.target.value) }}
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-indigo-200/70 focus:outline-none focus:ring-2 focus:ring-purple-400 text-base"
+                    placeholder="e.g. 2575612"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl shadow-lg hover:from-indigo-500 hover:to-purple-500 transition-all"
+                >
+                  Search Bill
+                </button>
+              </form>
+            </motion.div>
+
+            {/* ── MOBILE AD — below form, hidden on desktop ─────────────────────
+                Best position on mobile: right after the form, before footer.
+                Uncomment the AdUnit after AdSense is approved.
+                Replace SLOT_ID_MOBILE with your real ad slot ID.
+            ──────────────────────────────────────────────────────────────────── */}
+            <div className="w-full mt-5 lg:hidden">
+              {/* ── ADSENSE MOBILE — uncomment after approval ──
+              <AdUnit
+                adSlot="SLOT_ID_MOBILE"
+                adFormat="auto"
+                style={{ minHeight: 100 }}
+              />
+              ── END ADSENSE MOBILE ── */}
             </div>
-          </motion.div>
+
+            {/* Footer links */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+              className="w-full mt-6 text-center text-xs text-indigo-200/50 space-y-2"
+            >
+              <p>© 2026 Vishnu Thulasi <br /> This website was designed by Vishnu Thulasi</p>
+              <div className="flex items-center justify-center gap-4 flex-wrap">
+                <Link
+                  href="/about"
+                  className="hover:text-indigo-300 transition-colors underline underline-offset-2"
+                >
+                  About &amp; How to Use
+                </Link>
+                <span className="text-indigo-200/20">·</span>
+                <Link
+                  href="/privacy-policy"
+                  className="hover:text-indigo-300 transition-colors underline underline-offset-2"
+                >
+                  Privacy Policy
+                </Link>
+              </div>
+            </motion.div>
+
+          </div>
+          {/* ── END CENTER COLUMN ── */}
+
+          {/* ── RIGHT AD COLUMN — desktop only ─────────────────────────────────
+              Uncomment the AdUnit inside after AdSense is approved.
+              Replace SLOT_ID_RIGHT with your real vertical ad slot ID.
+          ──────────────────────────────────────────────────────────────────── */}
+          <div className="hidden lg:flex flex-col items-center justify-center w-[160px] xl:w-[200px] flex-shrink-0 self-stretch px-2">
+            {/* ── ADSENSE RIGHT — uncomment after approval ──
+            <AdUnit
+              adSlot="SLOT_ID_RIGHT"
+              adFormat="vertical"
+              style={{ width: '160px', minHeight: '600px' }}
+            />
+            ── END ADSENSE RIGHT ── */}
+          </div>
 
         </div>
+        {/* ── END THREE-COLUMN LAYOUT ── */}
 
         {/* Sidebar */}
         <motion.div
