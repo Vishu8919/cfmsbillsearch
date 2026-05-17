@@ -227,7 +227,7 @@ export default function PrivacyPolicy() {
             transition={{ delay: 0.3 }}
             className="mt-8 text-center text-xs text-indigo-200/50 space-y-2"
           >
-            <p>© 2026 Vishnu Thulasi</p>
+            <p>© 2026 Vishnu Thulasi <br/> This website was designed by Vishnu Thulasi </p>
             <div className="flex items-center justify-center gap-4 flex-wrap">
               <Link href="/" className="hover:text-indigo-300 transition-colors underline underline-offset-2">
                 Home
