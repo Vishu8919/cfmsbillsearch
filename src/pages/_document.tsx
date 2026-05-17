@@ -12,7 +12,7 @@ export default function Document() {
         />
         <meta
           name="keywords"
-          content="CFMS bill status, AP CFMS, Andhra Pradesh CFMS, cfms bill search, AP treasury payment status, CFMS bill tracker, apcfss bill status, AP government bills, treasury pending bills, CFMS payment status"
+          content="CFMS bill status, AP CFMS, Andhra Pradesh CFMS, CFMS bills Status, AP treasury payment status, CFMS bill tracker, apcfss bill status, AP government bills, treasury pending bills, CFMS payment status"
         />
         <meta name="author" content="Vishnu Thulasi" />
         <meta name="robots" content="index, follow" />

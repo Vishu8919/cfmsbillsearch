@@ -53,7 +53,7 @@ export default function BillSearch() {
 
   return (
     <div className="p-6 max-w-md mx-auto">
-      <h1 className="text-2xl font-bold mb-4">CFMS Bill Search</h1>
+      <h1 className="text-2xl font-bold mb-4">CFMS Bill Status</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <input
           type="text"
