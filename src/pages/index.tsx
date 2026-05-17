@@ -6,40 +6,40 @@ import { motion } from 'framer-motion'
 import { FaPaste } from 'react-icons/fa'
 
 // ─── AdSense Ad Unit Component ───────────────────────────────────────────────
-interface AdUnitProps {
-  adSlot: string
-  adFormat?: string
-  style?: React.CSSProperties
-}
+// interface AdUnitProps {
+//   adSlot: string
+//   adFormat?: string
+//   style?: React.CSSProperties
+// }
 
-declare global {
-  interface Window {
-    adsbygoogle?: unknown[]
-  }
-}
+// declare global {
+//   interface Window {
+//     adsbygoogle?: unknown[]
+//   }
+// }
 
-function AdUnit({ adSlot, adFormat = 'auto', style }: AdUnitProps) {
-  useEffect(() => {
-    try {
-      ;(window.adsbygoogle = window.adsbygoogle || []).push({})
-    } catch {
-      // AdSense may fail before script loads — safely ignore
-    }
-  }, [])
+// function AdUnit({ adSlot, adFormat = 'auto', style }: AdUnitProps) {
+//   useEffect(() => {
+//     try {
+//       ;(window.adsbygoogle = window.adsbygoogle || []).push({})
+//     } catch {
+//       // AdSense may fail before script loads — safely ignore
+//     }
+//   }, [])
 
-  return (
-    <div style={style}>
-      <ins
-        className="adsbygoogle"
-        style={{ display: 'block' }}
-        data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"  // ← replace with your Publisher ID
-        data-ad-slot={adSlot}
-        data-ad-format={adFormat}
-        data-full-width-responsive="true"
-      />
-    </div>
-  )
-}
+//   return (
+//     <div style={style}>
+//       <ins
+//         className="adsbygoogle"
+//         style={{ display: 'block' }}
+//         data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"  // ← replace with your Publisher ID
+//         data-ad-slot={adSlot}
+//         data-ad-format={adFormat}
+//         data-full-width-responsive="true"
+//       />
+//     </div>
+//   )
+// }
 
 interface BillHistoryItem {
   year: string
