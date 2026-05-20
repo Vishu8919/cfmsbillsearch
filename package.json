@@ -1,0 +1,36 @@
+{
+  "name": "ap-cfms-bill-search",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "axios": "^1.9.0",
+    "cookie": "^1.0.2",
+    "framer-motion": "^12.10.0",
+    "next": "15.3.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-helmet-async": "^3.0.0",
+    "react-icons": "^5.5.0",
+    "serve": "^14.2.4"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@next/bundle-analyzer": "^15.3.1",
+    "@types/node": "^20",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19",
+    "autoprefixer": "^10.4.19",
+    "compression-webpack-plugin": "^11.1.0",
+    "eslint": "^9",
+    "eslint-config-next": "15.3.1",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5"
+  }
+}

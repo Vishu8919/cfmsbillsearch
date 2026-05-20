@@ -1,0 +1,19 @@
+{
+  "name": "CFMS Bills Status",
+  "short_name": "CFMS",
+  "description": "Check Andhra Pradesh CFMS bill status and treasury payment status online.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111827",
+  "theme_color": "#4f46e5",
+  "orientation": "portrait",
+  "scope": "/",
+  "lang": "en-IN",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48 32x32 16x16",
+      "type": "image/x-icon"
+    }
+  ]
+}
