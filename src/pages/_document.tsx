@@ -97,11 +97,10 @@ export default function Document() {
           }}
         />
 
-        {/* ── Google AdSense ── */}
-        {/* IMPORTANT: Replace ca-pub-XXXXXXXXXXXXXXXX with your real AdSense Publisher ID */}
+        {/* ── Google AdSense Auto Ads ── */}
         <script
           async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX"
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3239202370345679"
           crossOrigin="anonymous"
         />
       </Head>

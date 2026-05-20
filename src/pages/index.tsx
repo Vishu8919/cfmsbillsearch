@@ -5,42 +5,6 @@ import { FaRegTrashAlt, FaTimes, FaHistory } from 'react-icons/fa'
 import { motion } from 'framer-motion'
 import { FaPaste } from 'react-icons/fa'
 
-// ─── AdSense Ad Unit Component ───────────────────────────────────────────────
-// interface AdUnitProps {
-//   adSlot: string
-//   adFormat?: string
-//   style?: React.CSSProperties
-// }
-
-// declare global {
-//   interface Window {
-//     adsbygoogle?: unknown[]
-//   }
-// }
-
-// function AdUnit({ adSlot, adFormat = 'auto', style }: AdUnitProps) {
-//   useEffect(() => {
-//     try {
-//       ;(window.adsbygoogle = window.adsbygoogle || []).push({})
-//     } catch {
-//       // AdSense may fail before script loads — safely ignore
-//     }
-//   }, [])
-
-//   return (
-//     <div style={style}>
-//       <ins
-//         className="adsbygoogle"
-//         style={{ display: 'block' }}
-//         data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"  // ← replace with your Publisher ID
-//         data-ad-slot={adSlot}
-//         data-ad-format={adFormat}
-//         data-full-width-responsive="true"
-//       />
-//     </div>
-//   )
-// }
-
 interface BillHistoryItem {
   year: string
   billNo: string
@@ -172,27 +136,10 @@ export default function Home() {
           <div className="absolute bottom-0 left-1/2 w-64 h-64 bg-purple-900 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
         </div>
 
-        {/* ── Three-column layout (desktop: left-ad | center-form | right-ad) ── */}
         <div
           className="relative z-10 w-full flex-1 flex items-center justify-center"
           style={{ minHeight: '100dvh' }}
         >
-
-          {/* ── LEFT AD COLUMN — desktop only ──────────────────────────────────
-              Uncomment the AdUnit inside after AdSense is approved.
-              Replace SLOT_ID_LEFT with your real vertical ad slot ID.
-          ─────────────────────────────────────────────────────────────────── */}
-          <div className="hidden lg:flex flex-col items-center justify-center w-[160px] xl:w-[200px] flex-shrink-0 self-stretch px-2">
-            {/* ── ADSENSE LEFT — uncomment after approval ──
-            <AdUnit
-              adSlot="SLOT_ID_LEFT"
-              adFormat="vertical"
-              style={{ width: '160px', minHeight: '600px' }}
-            />
-            ── END ADSENSE LEFT ── */}
-          </div>
-
-          {/* ── CENTER CONTENT COLUMN ─────────────────────────────────────── */}
           <div className="w-full max-w-md mx-auto flex flex-col items-center px-4 py-8">
 
             {/* Title */}
@@ -292,21 +239,6 @@ export default function Home() {
               </form>
             </motion.div>
 
-            {/* ── MOBILE AD — below form, hidden on desktop ─────────────────────
-                Best position on mobile: right after the form, before footer.
-                Uncomment the AdUnit after AdSense is approved.
-                Replace SLOT_ID_MOBILE with your real ad slot ID.
-            ──────────────────────────────────────────────────────────────────── */}
-            <div className="w-full mt-5 lg:hidden">
-              {/* ── ADSENSE MOBILE — uncomment after approval ──
-              <AdUnit
-                adSlot="SLOT_ID_MOBILE"
-                adFormat="auto"
-                style={{ minHeight: 100 }}
-              />
-              ── END ADSENSE MOBILE ── */}
-            </div>
-
             {/* Footer links */}
             <motion.div
               initial={{ opacity: 0 }}
@@ -333,24 +265,7 @@ export default function Home() {
             </motion.div>
 
           </div>
-          {/* ── END CENTER COLUMN ── */}
-
-          {/* ── RIGHT AD COLUMN — desktop only ─────────────────────────────────
-              Uncomment the AdUnit inside after AdSense is approved.
-              Replace SLOT_ID_RIGHT with your real vertical ad slot ID.
-          ──────────────────────────────────────────────────────────────────── */}
-          <div className="hidden lg:flex flex-col items-center justify-center w-[160px] xl:w-[200px] flex-shrink-0 self-stretch px-2">
-            {/* ── ADSENSE RIGHT — uncomment after approval ──
-            <AdUnit
-              adSlot="SLOT_ID_RIGHT"
-              adFormat="vertical"
-              style={{ width: '160px', minHeight: '600px' }}
-            />
-            ── END ADSENSE RIGHT ── */}
-          </div>
-
         </div>
-        {/* ── END THREE-COLUMN LAYOUT ── */}
 
         {/* Sidebar */}
         <motion.div
