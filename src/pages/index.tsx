@@ -37,18 +37,30 @@ export default function Home() {
   }
 
   const handleSearch = () => {
-    if (fullBill && fullBill.includes('-')) {
-      const [yearPart, billNoPart] = fullBill.split('-').map((p) => p.trim())
-      setYear(yearPart)
-      setBillNo(billNoPart)
-      const newItem = { year: yearPart, billNo: billNoPart, timestamp: Date.now(), name: '' }
-      const updatedHistory = [newItem, ...history]
-      setHistory(updatedHistory)
-      localStorage.setItem('billHistory', JSON.stringify(updatedHistory))
-      const url = `https://prdcfms.apcfss.in:44300/sap/bc/ui5_ui5/sap/zexp_billstatus/index.html?sap-client=350&billNum=${yearPart}-${billNoPart}`
-      window.open(url, '_blank')
-      setFullBill('')
-      return
+    if (fullBill.trim()) {
+      let yearPart: string
+      let billNoPart: string
+      const trimmed = fullBill.trim()
+      if (trimmed.includes('-')) {
+        const parts = trimmed.split('-').map((p) => p.trim())
+        yearPart = parts[0]
+        billNoPart = parts[1]
+      } else {
+        yearPart = trimmed.slice(0, 4)
+        billNoPart = trimmed.slice(4)
+      }
+      if (yearPart && billNoPart) {
+        setYear(yearPart)
+        setBillNo(billNoPart)
+        const newItem = { year: yearPart, billNo: billNoPart, timestamp: Date.now(), name: '' }
+        const updatedHistory = [newItem, ...history]
+        setHistory(updatedHistory)
+        localStorage.setItem('billHistory', JSON.stringify(updatedHistory))
+        const url = `https://prdcfms.apcfss.in:44300/sap/bc/ui5_ui5/sap/zexp_billstatus/index.html?sap-client=350&billNum=${yearPart}-${billNoPart}`
+        window.open(url, '_blank')
+        setFullBill('')
+        return
+      }
     }
     if (year && billNo) {
       const newItem = { year, billNo, timestamp: Date.now(), name: '' }
@@ -180,7 +192,8 @@ export default function Home() {
                     inputMode="text"
                     value={fullBill}
                     onChange={(e) => setFullBill(e.target.value)}
-                    placeholder="e.g. 2026-123456"
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleSearch() }}
+                    placeholder="e.g. 2025-4567894 or 2026456987"
                     className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-indigo-200/70 focus:outline-none focus:ring-2 focus:ring-purple-400 text-base"
                   />
                   <button
