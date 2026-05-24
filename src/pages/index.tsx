@@ -252,6 +252,27 @@ export default function Home() {
               </form>
             </motion.div>
 
+            {/* Bulk check link */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="w-full mt-4"
+            >
+              <Link
+                href="/bulk-check"
+                className="block w-full bg-white/5 hover:bg-white/10 backdrop-blur-sm border border-white/10 text-indigo-100 py-3 rounded-xl text-center text-sm transition-all group"
+              >
+                <span className="inline-flex items-center gap-2">
+                  Check Multiple Bills at Once
+                  <span className="group-hover:translate-x-1 transition-transform">→</span>
+                </span>
+                <div className="text-xs text-indigo-300/60 mt-0.5">
+                  Up to 30 bills · Daily batches · CSV export
+                </div>
+              </Link>
+            </motion.div>
+
             {/* Footer links */}
             <motion.div
               initial={{ opacity: 0 }}
