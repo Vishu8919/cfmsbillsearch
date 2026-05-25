@@ -274,27 +274,41 @@ export default function Home() {
             </motion.div>
 
             {/* Footer links */}
-            <motion.div
+            {/* Footer links */}
+<motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4 }}
-              className="w-full mt-6 text-center text-xs text-indigo-200/50 space-y-2"
+              className="w-full mt-6 text-center text-xs text-indigo-200/50"
             >
-              <p>© 2026 Vishnu Thulasi <br /> This website was designed by Vishnu Thulasi</p>
-              <div className="flex items-center justify-center gap-4 flex-wrap">
+              {/* Links row */}
+              <div className="flex items-center justify-center">
                 <Link
                   href="/about"
                   className="hover:text-indigo-300 transition-colors underline underline-offset-2"
                 >
                   About &amp; How to Use
                 </Link>
-                <span className="text-indigo-200/20">·</span>
+
+                <span className="mx-3 text-indigo-200/20">•</span>
+
                 <Link
                   href="/privacy-policy"
                   className="hover:text-indigo-300 transition-colors underline underline-offset-2"
                 >
                   Privacy Policy
                 </Link>
+              </div>
+
+              {/* Space between links and footer text */}
+              <div className="mt-4" />
+
+              {/* Footer text */}
+              <div className="flex items-center justify-center gap-4 flex-wrap text-center">
+                <p>
+                  © 2026 Vishnu Thulasi <br />
+                  This website was designed by Vishnu Thulasi
+                </p>
               </div>
             </motion.div>
 

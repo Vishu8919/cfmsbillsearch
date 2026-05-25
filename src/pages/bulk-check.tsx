@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Eye, EyeOff } from 'lucide-react'
 import {
   FaRegTrashAlt,
   FaTimes,
@@ -124,6 +125,7 @@ export default function BulkCheck() {
   // ─── Form state ───
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [billsText, setBillsText] = useState('')
   const [batchName, setBatchName] = useState('')
 
@@ -437,15 +439,26 @@ export default function BulkCheck() {
                 </div>
                 <div>
                   <label className="block text-xs uppercase tracking-wider text-indigo-200/70 mb-1.5">Password</label>
-                  <input
-                    type="password"
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-indigo-300/40 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    disabled={loading}
-                  />
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      autoComplete="current-password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-indigo-300/40 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent pr-11"
+                      disabled={loading}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      disabled={loading}
+                      className="absolute inset-y-0 right-3 flex items-center justify-center text-indigo-300 hover:text-white transition disabled:cursor-not-allowed"
+                    >
+                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -671,14 +684,15 @@ export default function BulkCheck() {
               transition={{ delay: 0.4 }}
               className="w-full mt-8 text-center text-xs text-indigo-200/50 space-y-2"
             >
-              <p>© 2026 Vishnu Thulasi <br /> This website was designed by Vishnu Thulasi</p>
+          
               <div className="flex items-center justify-center gap-4 flex-wrap">
                 <Link href="/" className="hover:text-indigo-300 underline underline-offset-2">Home</Link>
                 <span className="text-indigo-200/20">·</span>
                 <Link href="/about" className="hover:text-indigo-300 underline underline-offset-2">About</Link>
                 <span className="text-indigo-200/20">·</span>
                 <Link href="/privacy-policy" className="hover:text-indigo-300 underline underline-offset-2">Privacy</Link>
-              </div>
+              </div> <br/>
+                  <p>© 2026 Vishnu Thulasi <br /> This website was designed by Vishnu Thulasi</p>
             </motion.div>
 
           </div>
