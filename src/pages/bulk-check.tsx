@@ -57,6 +57,7 @@ type BillResult = {
   paymentStatus?: string | null
   paymentRef?: string | null
   paymentDate?: string | null
+  userDescription?: string
   error?: string
 }
 
@@ -191,7 +192,12 @@ export default function BulkCheck() {
   }, [loading, billsText])
 
   function parseBills(raw: string): string[] {
-    return raw.split(/[\s,;]+/).map((s) => s.trim()).filter(Boolean)
+    // Split by newlines only (not by spaces/commas) so descriptions stay attached.
+    // Each line is sent as-is to the backend, which extracts bill number + description.
+    return raw
+      .split(/\r?\n/)
+      .map((s) => s.trim())
+      .filter(Boolean)
   }
 
   function saveHistory(next: BatchHistoryItem[]) {
@@ -299,7 +305,7 @@ export default function BulkCheck() {
   function exportCSV() {
     if (!response) return
     const headers = [
-      'Bill Number', 'Verdict', 'Bill Status', 'Current Stage',
+      'Bill Number', 'Description', 'Verdict', 'Bill Status', 'Current Stage',
       'Gross', 'Deduction', 'Net', 'Beneficiary', 'Account',
       'Payment Status', 'Payment Ref', 'Payment Date', 'DDO', 'Treasury',
     ]
@@ -307,7 +313,7 @@ export default function BulkCheck() {
       const ben = r.beneficiaries?.[0]
       const stage = r.currentStage ? `${r.currentStage.processor} / ${r.currentStage.action}` : ''
       return [
-        r.billNumber, r.verdict, r.billStatus || '', stage,
+        r.billNumber, r.userDescription || '', r.verdict, r.billStatus || '', stage,
         r.grossAmount || '', r.deduction || '', r.netAmount || '',
         ben?.name || '', ben?.accountNo || '',
         r.paymentStatus || '', r.paymentRef || '', r.paymentDate || '',
@@ -467,15 +473,19 @@ export default function BulkCheck() {
                   ref={billsTextRef}
                   value={billsText}
                   onChange={(e) => setBillsText(e.target.value)}
-                  placeholder={'2026-4661619\n20264581399\n2026-418738'}
+                  placeholder={'20264661619 - Salary bill April 2026\n20264644399 - Salary bill April 2026\n2026-418738 - Contractor payment'}
                   rows={6}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-indigo-300/40 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm"
                   disabled={loading}
                 />
-                <div className="text-xs text-indigo-300/50 mt-1.5">
-                  Accepts: <code className="bg-white/5 px-1.5 py-0.5 rounded">2025-2445876</code>{' '}
-                  <code className="bg-white/5 px-1.5 py-0.5 rounded">2026456243</code>{' '}
-                  <code className="bg-white/5 px-1.5 py-0.5 rounded">20264581399</code>
+                <div className="text-xs text-indigo-300/50 mt-1.5 space-y-0.5">
+                  <div>
+                    Bill formats: <code className="bg-white/5 px-1.5 py-0.5 rounded">2025-2445876</code>{' '}
+                    <code className="bg-white/5 px-1.5 py-0.5 rounded">20264581399</code>
+                  </div>
+                  <div>
+                    Tip: add a description after the bill — <code className="bg-white/5 px-1.5 py-0.5 rounded">20264661619 - Salary bill</code>
+                  </div>
                 </div>
               </div>
 
@@ -578,10 +588,17 @@ export default function BulkCheck() {
                         >
                           <div className="p-4">
                             <div className="flex items-start justify-between gap-3 flex-wrap">
-                              <div className="min-w-0">
+                              <div className="min-w-0 flex-1">
                                 <div className="font-mono text-sm text-indigo-100 font-medium">{r.billNumber}</div>
+                                {r.userDescription && (
+                                  <div className="text-xs text-purple-200/90 mt-1 leading-snug">
+                                    {r.userDescription}
+                                  </div>
+                                )}
                                 {ben?.name && (
-                                  <div className="text-xs text-indigo-300/70 mt-0.5 truncate">{ben.name}</div>
+                                  <div className="text-xs text-indigo-300/70 mt-0.5 truncate">
+                                    Beneficiary: {ben.name}
+                                  </div>
                                 )}
                               </div>
                               <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border ${VERDICT_PILL[r.verdict] || VERDICT_PILL.UNKNOWN}`}>
