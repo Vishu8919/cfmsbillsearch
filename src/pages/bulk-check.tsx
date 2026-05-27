@@ -12,6 +12,7 @@ import {
   FaFileDownload,
   FaCheckCircle,
   FaClock,
+  FaExclamationTriangle,
   FaSpinner,
   FaChevronDown,
   FaChevronUp,
@@ -20,41 +21,14 @@ import {
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:10000'
 
 // ───── Types ─────
-type Flow = {
-  processor: string
-  activity: string
-  action: string
-  status: string
-  receivedDate: string
-  processedDate: string
-}
-
-type Beneficiary = {
-  code: string
-  name: string
-  accountNo: string
-  gross: string
-  deduction: string
-  net: string
-  paymentStatus: string
-  paymentRef: string
-  paymentDate: string
-}
-
 type BillResult = {
   billNumber: string
   verdict: string
   billStatus?: string | null
-  ddo?: string | null
-  district?: string | null
-  treasuryOffice?: string | null
-  hoa?: string | null
-  grossAmount?: string | null
-  deduction?: string | null
   netAmount?: string | null
-  flow?: Flow[]
-  currentStage?: Flow | null
-  beneficiaries?: Beneficiary[]
+  pendingAt?: string | null      // processor where bill is currently stuck
+  pendingAction?: string | null  // action pending at that processor
+  beneficiaryName?: string | null
   paymentStatus?: string | null
   paymentRef?: string | null
   paymentDate?: string | null
@@ -65,6 +39,7 @@ type BillResult = {
 type ApiResponse = {
   results: BillResult[]
   checkedAt: string
+  elapsedSeconds?: number
   summary: { total: number; byVerdict: Record<string, number> }
 }
 
@@ -307,21 +282,23 @@ export default function BulkCheck() {
   function exportCSV() {
     if (!response) return
     const headers = [
-      'Bill Number', 'Description', 'Verdict', 'Bill Status', 'Current Stage',
-      'Gross', 'Deduction', 'Net', 'Beneficiary', 'Account',
-      'Payment Status', 'Payment Ref', 'Payment Date', 'DDO', 'Treasury',
+      'Bill Number', 'Description', 'Verdict', 'Bill Status',
+      'Pending At', 'Pending Action', 'Net Amount',
+      'Beneficiary', 'Payment Status', 'Payment Ref', 'Payment Date',
     ]
-    const rows = response.results.map((r) => {
-      const ben = r.beneficiaries?.[0]
-      const stage = r.currentStage ? `${r.currentStage.processor} / ${r.currentStage.action}` : ''
-      return [
-        r.billNumber, r.userDescription || '', r.verdict, r.billStatus || '', stage,
-        r.grossAmount || '', r.deduction || '', r.netAmount || '',
-        ben?.name || '', ben?.accountNo || '',
-        r.paymentStatus || '', r.paymentRef || '', r.paymentDate || '',
-        r.ddo || '', r.treasuryOffice || '',
-      ]
-    })
+    const rows = response.results.map((r) => [
+      r.billNumber,
+      r.userDescription || '',
+      r.verdict,
+      r.billStatus || '',
+      r.pendingAt || '',
+      r.pendingAction || '',
+      r.netAmount || '',
+      r.beneficiaryName || '',
+      r.paymentStatus || '',
+      r.paymentRef || '',
+      r.paymentDate || '',
+    ])
     const csv = [headers, ...rows]
       .map((row) => row.map((c) => `"${String(c ?? '').replace(/"/g, '""')}"`).join(','))
       .join('\n')
@@ -440,15 +417,15 @@ export default function BulkCheck() {
                 <div>
                   <label className="block text-xs uppercase tracking-wider text-indigo-200/70 mb-1.5">Password</label>
                   <div className="relative">
-                    <input
+                  <input
                       type={showPassword ? 'text' : 'password'}
-                      autoComplete="current-password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
                       className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-indigo-300/40 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent pr-11"
-                      disabled={loading}
-                    />
+                    disabled={loading}
+                  />
                     <button
                       type="button"
                       onClick={() => setShowPassword((prev) => !prev)}
@@ -547,7 +524,7 @@ export default function BulkCheck() {
                     />
                   </div>
                   <p className="text-xs text-indigo-300/60 mt-2">
-                    Authenticating and reading {parseBills(billsText).length} bills… (~{parseBills(billsText).length * 10}s)
+                    Authenticating and reading {parseBills(billsText).length} bills… (~{Math.max(8, Math.ceil(parseBills(billsText).length * 4))}s)
                   </p>
                 </div>
               )}
@@ -588,9 +565,8 @@ export default function BulkCheck() {
                   {/* Result cards (mobile-friendly) */}
                   <div className="space-y-3">
                     {response.results.map((r) => {
-                      const ben = r.beneficiaries?.[0]
-                      const stage = r.currentStage
-                        ? `${r.currentStage.processor}${r.currentStage.action ? ' · ' + r.currentStage.action : ''}`
+                      const stage = r.pendingAt
+                        ? `${r.pendingAt}${r.pendingAction ? ' · ' + r.pendingAction : ''}`
                         : null
                       const isOpen = expanded[r.billNumber]
                       return (
@@ -608,9 +584,9 @@ export default function BulkCheck() {
                                     {r.userDescription}
                                   </div>
                                 )}
-                                {ben?.name && (
+                                {r.beneficiaryName && (
                                   <div className="text-xs text-indigo-300/70 mt-0.5 truncate">
-                                    Beneficiary: {ben.name}
+                                    Beneficiary: {r.beneficiaryName}
                                   </div>
                                 )}
                               </div>
@@ -620,7 +596,7 @@ export default function BulkCheck() {
                               </span>
                             </div>
 
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3 text-xs">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3 text-xs">
                               <div>
                                 <div className="text-indigo-300/50 uppercase tracking-wider">Status</div>
                                 <div className="text-indigo-100 mt-0.5">{r.billStatus || '—'}</div>
@@ -629,12 +605,12 @@ export default function BulkCheck() {
                                 <div className="text-indigo-300/50 uppercase tracking-wider">Net</div>
                                 <div className="text-indigo-100 mt-0.5 tabular-nums">{r.netAmount ? `₹${r.netAmount}` : '—'}</div>
                               </div>
-                              <div className="col-span-2">
-                                <div className="text-indigo-300/50 uppercase tracking-wider">Current stage</div>
+                              <div className="col-span-2 sm:col-span-1">
+                                <div className="text-indigo-300/50 uppercase tracking-wider">Pending at</div>
                                 <div className="text-indigo-100 mt-0.5">{stage || '—'}</div>
                               </div>
                               {r.paymentStatus && (
-                                <div className="col-span-2 sm:col-span-4">
+                                <div className="col-span-2 sm:col-span-3">
                                   <div className="text-indigo-300/50 uppercase tracking-wider">Payment</div>
                                   <div className="text-indigo-100 mt-0.5">
                                     {r.paymentStatus}
@@ -647,6 +623,12 @@ export default function BulkCheck() {
                                   </div>
                                 </div>
                               )}
+                              {r.error && (
+                                <div className="col-span-2 sm:col-span-3">
+                                  <div className="text-red-300/70 uppercase tracking-wider">Error</div>
+                                  <div className="text-red-200 mt-0.5 text-[11px]">{r.error}</div>
+                                </div>
+                              )}
                             </div>
 
                             <button
@@ -654,7 +636,7 @@ export default function BulkCheck() {
                               className="mt-3 text-xs text-indigo-300 hover:text-white flex items-center gap-1 transition"
                             >
                               {isOpen ? <FaChevronUp className="w-2.5 h-2.5" /> : <FaChevronDown className="w-2.5 h-2.5" />}
-                              {isOpen ? 'Hide details' : 'Full details'}
+                              {isOpen ? 'Hide raw' : 'View raw'}
                             </button>
                           </div>
 
@@ -672,6 +654,7 @@ export default function BulkCheck() {
 
                   <p className="text-xs text-indigo-300/40 mt-4 text-center">
                     Checked at {new Date(response.checkedAt).toLocaleString()}
+                    {response.elapsedSeconds && ` · ${response.elapsedSeconds}s`}
                   </p>
                 </motion.div>
               )}
@@ -684,15 +667,14 @@ export default function BulkCheck() {
               transition={{ delay: 0.4 }}
               className="w-full mt-8 text-center text-xs text-indigo-200/50 space-y-2"
             >
-          
+              <p>© 2026 Vishnu Thulasi <br /> This website was designed by Vishnu Thulasi</p>
               <div className="flex items-center justify-center gap-4 flex-wrap">
                 <Link href="/" className="hover:text-indigo-300 underline underline-offset-2">Home</Link>
                 <span className="text-indigo-200/20">·</span>
                 <Link href="/about" className="hover:text-indigo-300 underline underline-offset-2">About</Link>
                 <span className="text-indigo-200/20">·</span>
                 <Link href="/privacy-policy" className="hover:text-indigo-300 underline underline-offset-2">Privacy</Link>
-              </div> <br/>
-                  <p>© 2026 Vishnu Thulasi <br /> This website was designed by Vishnu Thulasi</p>
+              </div>
             </motion.div>
 
           </div>
