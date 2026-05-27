@@ -12,7 +12,6 @@ import {
   FaFileDownload,
   FaCheckCircle,
   FaClock,
-  FaExclamationTriangle,
   FaSpinner,
   FaChevronDown,
   FaChevronUp,
