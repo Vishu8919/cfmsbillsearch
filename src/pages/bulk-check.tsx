@@ -11,6 +11,7 @@ import {
   FaFileDownload,
   FaCheckCircle,
   FaClock,
+  FaExclamationTriangle,
   FaSpinner,
   FaChevronDown,
   FaChevronUp,
@@ -567,9 +568,13 @@ export default function BulkCheck() {
                   {/* Result cards (mobile-friendly) */}
                   <div className="space-y-3">
                     {response.results.map((r) => {
-                      const stage = r.pendingAt
-                        ? `${r.pendingAt}${r.pendingAction ? ' · ' + r.pendingAction : ''}`
-                        : null
+                      // Build the "Pending At" label based on bill state
+                      let stage: string | null = null
+                      if (r.verdict === 'PAID') {
+                        stage = '✓ Payment Complete'
+                      } else if (r.pendingAt) {
+                        stage = `${r.pendingAt}${r.pendingAction ? ' · ' + r.pendingAction : ''}`
+                      }
                       const isOpen = expanded[r.billNumber]
                       return (
                         <motion.div
