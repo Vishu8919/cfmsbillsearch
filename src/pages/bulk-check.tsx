@@ -3,7 +3,6 @@ import { useState, useEffect, useRef } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Eye, EyeOff } from 'lucide-react'
 import {
   FaRegTrashAlt,
   FaTimes,
@@ -24,10 +23,18 @@ type BillResult = {
   billNumber: string
   verdict: string
   billStatus?: string | null
+  grossAmount?: string | null
+  deduction?: string | null
   netAmount?: string | null
-  pendingAt?: string | null      // processor where bill is currently stuck
-  pendingAction?: string | null  // action pending at that processor
+  ddo?: string | null
+  treasuryOffice?: string | null
+  pendingAt?: string | null
+  pendingAction?: string | null
   beneficiaryName?: string | null
+  beneficiaryAccount?: string | null
+  beneficiaryGross?: string | null
+  beneficiaryDeduction?: string | null
+  beneficiaryNet?: string | null
   paymentStatus?: string | null
   paymentRef?: string | null
   paymentDate?: string | null
@@ -99,7 +106,6 @@ export default function BulkCheck() {
   // ─── Form state ───
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
   const [billsText, setBillsText] = useState('')
   const [batchName, setBatchName] = useState('')
 
@@ -282,8 +288,11 @@ export default function BulkCheck() {
     if (!response) return
     const headers = [
       'Bill Number', 'Description', 'Verdict', 'Bill Status',
-      'Pending At', 'Pending Action', 'Net Amount',
-      'Beneficiary', 'Payment Status', 'Payment Ref', 'Payment Date',
+      'Pending At', 'Pending Action',
+      'Gross Amount', 'Deduction', 'Net Amount',
+      'Beneficiary', 'Account No',
+      'Payment Status', 'Payment Ref', 'Payment Date',
+      'DDO', 'Treasury Office',
     ]
     const rows = response.results.map((r) => [
       r.billNumber,
@@ -292,11 +301,16 @@ export default function BulkCheck() {
       r.billStatus || '',
       r.pendingAt || '',
       r.pendingAction || '',
+      r.grossAmount || '',
+      r.deduction || '',
       r.netAmount || '',
       r.beneficiaryName || '',
+      r.beneficiaryAccount || '',
       r.paymentStatus || '',
       r.paymentRef || '',
       r.paymentDate || '',
+      r.ddo || '',
+      r.treasuryOffice || '',
     ])
     const csv = [headers, ...rows]
       .map((row) => row.map((c) => `"${String(c ?? '').replace(/"/g, '""')}"`).join(','))
@@ -415,26 +429,15 @@ export default function BulkCheck() {
                 </div>
                 <div>
                   <label className="block text-xs uppercase tracking-wider text-indigo-200/70 mb-1.5">Password</label>
-                  <div className="relative">
                   <input
-                      type={showPassword ? 'text' : 'password'}
+                    type="password"
                     autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-indigo-300/40 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent pr-11"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-indigo-300/40 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     disabled={loading}
                   />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((prev) => !prev)}
-                      aria-label={showPassword ? 'Hide password' : 'Show password'}
-                      disabled={loading}
-                      className="absolute inset-y-0 right-3 flex items-center justify-center text-indigo-300 hover:text-white transition disabled:cursor-not-allowed"
-                    >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
-                  </div>
                 </div>
               </div>
 
@@ -601,27 +604,60 @@ export default function BulkCheck() {
                                 <div className="text-indigo-100 mt-0.5">{r.billStatus || '—'}</div>
                               </div>
                               <div>
-                                <div className="text-indigo-300/50 uppercase tracking-wider">Net</div>
+                                <div className="text-indigo-300/50 uppercase tracking-wider">Net Amount</div>
                                 <div className="text-indigo-100 mt-0.5 tabular-nums">{r.netAmount ? `₹${r.netAmount}` : '—'}</div>
                               </div>
                               <div className="col-span-2 sm:col-span-1">
                                 <div className="text-indigo-300/50 uppercase tracking-wider">Pending at</div>
                                 <div className="text-indigo-100 mt-0.5">{stage || '—'}</div>
                               </div>
+
+                              {(r.grossAmount || r.deduction) && (
+                                <>
+                                  <div>
+                                    <div className="text-indigo-300/50 uppercase tracking-wider">Gross</div>
+                                    <div className="text-indigo-100 mt-0.5 tabular-nums">
+                                      {r.grossAmount ? `₹${r.grossAmount}` : '—'}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div className="text-indigo-300/50 uppercase tracking-wider">Deduction</div>
+                                    <div className="text-indigo-100 mt-0.5 tabular-nums">
+                                      {r.deduction ? `₹${r.deduction}` : '—'}
+                                    </div>
+                                  </div>
+                                  {r.beneficiaryAccount && (
+                                    <div>
+                                      <div className="text-indigo-300/50 uppercase tracking-wider">Account</div>
+                                      <div className="text-indigo-100 mt-0.5 font-mono text-[11px]">
+                                        {r.beneficiaryAccount}
+                                      </div>
+                                    </div>
+                                  )}
+                                </>
+                              )}
+
                               {r.paymentStatus && (
-                                <div className="col-span-2 sm:col-span-3">
-                                  <div className="text-indigo-300/50 uppercase tracking-wider">Payment</div>
-                                  <div className="text-indigo-100 mt-0.5">
-                                    {r.paymentStatus}
+                                <div className="col-span-2 sm:col-span-3 mt-1 p-2 bg-white/5 rounded-lg border border-white/5">
+                                  <div className="text-indigo-300/50 uppercase tracking-wider text-[10px] mb-1">Payment Details</div>
+                                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                                    <span className={`text-xs font-semibold ${r.paymentStatus.toLowerCase().includes('success') ? 'text-emerald-300' : 'text-amber-300'}`}>
+                                      {r.paymentStatus}
+                                    </span>
                                     {r.paymentDate && r.paymentDate !== '00.00.0000' && (
-                                      <span className="text-indigo-300/60"> · {r.paymentDate}</span>
-                                    )}
-                                    {r.paymentRef && (
-                                      <div className="text-indigo-300/60 font-mono text-[11px] mt-0.5">{r.paymentRef}</div>
+                                      <span className="text-indigo-200/80 text-xs">
+                                        Paid on {r.paymentDate}
+                                      </span>
                                     )}
                                   </div>
+                                  {r.paymentRef && (
+                                    <div className="text-indigo-300/70 font-mono text-[11px] mt-1 break-all">
+                                      Ref: {r.paymentRef}
+                                    </div>
+                                  )}
                                 </div>
                               )}
+
                               {r.error && (
                                 <div className="col-span-2 sm:col-span-3">
                                   <div className="text-red-300/70 uppercase tracking-wider">Error</div>
