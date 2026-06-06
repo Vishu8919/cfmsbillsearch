@@ -170,7 +170,16 @@ export default function Login() {
                   )}
                 </button>
 
-                <p className="text-center text-sm text-indigo-200/60 pt-1">
+                <p className="text-center text-sm pt-1">
+                  <Link
+                    href="/forgot-password"
+                    className="text-indigo-300/80 hover:text-white transition-colors"
+                  >
+                    Forgot your password?
+                  </Link>
+                </p>
+
+                <p className="text-center text-sm text-indigo-200/60">
                   Don&apos;t have an account?{' '}
                   <Link
                     href={`/register${nextPath !== '/' ? `?next=${encodeURIComponent(nextPath)}` : ''}`}

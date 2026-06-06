@@ -5,8 +5,9 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff } from 'lucide-react'
-import { FaSpinner, FaUser, FaLock, FaEnvelope, FaShieldAlt, FaFileInvoiceDollar, FaCheck } from 'react-icons/fa'
+import { FaSpinner, FaUser, FaLock, FaEnvelope, FaShieldAlt, FaFileInvoiceDollar, FaCheck, FaQuestionCircle } from 'react-icons/fa'
 import { useAuth } from '../context/AuthContext'
+import { fetchSecurityQuestions, SecurityQuestion } from '../lib/auth'
 
 export default function Register() {
   const { user, loading: authLoading, register } = useAuth()
@@ -19,6 +20,19 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Security questions (required). Loaded from the backend.
+  const [allQuestions, setAllQuestions] = useState<SecurityQuestion[]>([])
+  const [q1, setQ1] = useState('')
+  const [a1, setA1] = useState('')
+  const [q2, setQ2] = useState('')
+  const [a2, setA2] = useState('')
+
+  useEffect(() => {
+    fetchSecurityQuestions()
+      .then(({ questions }) => setAllQuestions(questions))
+      .catch(() => { /* non-fatal; user sees empty dropdowns + error on submit */ })
+  }, [])
 
   const nextPath = typeof router.query.next === 'string' ? router.query.next : '/'
 
@@ -49,9 +63,24 @@ export default function Register() {
       setError('Passwords do not match.')
       return
     }
+    if (!q1 || !q2) {
+      setError('Please choose both security questions.')
+      return
+    }
+    if (q1 === q2) {
+      setError('Please choose two different security questions.')
+      return
+    }
+    if (a1.trim().length < 2 || a2.trim().length < 2) {
+      setError('Please answer both security questions (at least 2 characters each).')
+      return
+    }
     setSubmitting(true)
     try {
-      await register(username.trim(), email.trim(), password)
+      await register(username.trim(), email.trim(), password, [
+        { questionId: q1, answer: a1.trim() },
+        { questionId: q2, answer: a2.trim() },
+      ])
       router.replace(decodeURIComponent(nextPath))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create account.')
@@ -196,6 +225,63 @@ export default function Register() {
                     {passwordsMatch && (
                       <FaCheck className="absolute right-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-emerald-400" />
                     )}
+                  </div>
+                </div>
+
+                {/* ── Security questions (required for password recovery) ── */}
+                <div className="pt-1 border-t border-white/10 mt-1">
+                  <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-indigo-200/60 mb-2 mt-3 font-medium">
+                    <FaQuestionCircle className="w-3 h-3" />
+                    Security Questions
+                  </p>
+                  <p className="text-[11px] text-indigo-200/40 mb-3 leading-relaxed">
+                    Used to reset your password if you forget it. Choose two and remember your answers.
+                  </p>
+
+                  {/* Question 1 */}
+                  <div className="mb-3">
+                    <select
+                      value={q1}
+                      onChange={(e) => setQ1(e.target.value)}
+                      disabled={submitting}
+                      className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-purple-500/70 focus:border-transparent transition-all text-sm mb-2 disabled:opacity-50"
+                    >
+                      <option value="" className="bg-indigo-950">Choose question 1…</option>
+                      {allQuestions.filter((q) => q.id !== q2).map((q) => (
+                        <option key={q.id} value={q.id} className="bg-indigo-950">{q.label}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="text"
+                      value={a1}
+                      onChange={(e) => setA1(e.target.value)}
+                      placeholder="Your answer"
+                      disabled={submitting || !q1}
+                      className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3.5 py-2.5 text-white placeholder-indigo-300/30 focus:outline-none focus:ring-2 focus:ring-purple-500/70 focus:border-transparent transition-all text-sm disabled:opacity-40"
+                    />
+                  </div>
+
+                  {/* Question 2 */}
+                  <div>
+                    <select
+                      value={q2}
+                      onChange={(e) => setQ2(e.target.value)}
+                      disabled={submitting}
+                      className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-purple-500/70 focus:border-transparent transition-all text-sm mb-2 disabled:opacity-50"
+                    >
+                      <option value="" className="bg-indigo-950">Choose question 2…</option>
+                      {allQuestions.filter((q) => q.id !== q1).map((q) => (
+                        <option key={q.id} value={q.id} className="bg-indigo-950">{q.label}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="text"
+                      value={a2}
+                      onChange={(e) => setA2(e.target.value)}
+                      placeholder="Your answer"
+                      disabled={submitting || !q2}
+                      className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3.5 py-2.5 text-white placeholder-indigo-300/30 focus:outline-none focus:ring-2 focus:ring-purple-500/70 focus:border-transparent transition-all text-sm disabled:opacity-40"
+                    />
                   </div>
                 </div>
 

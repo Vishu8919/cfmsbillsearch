@@ -79,6 +79,7 @@ export async function registerRequest(input: {
   username: string;
   email: string;
   password: string;
+  securityQuestions: { questionId: string; answer: string }[];
 }): Promise<{ token: string; user: AuthUser }> {
   return request('/api/auth/register', {
     method: 'POST',
@@ -98,6 +99,37 @@ export async function loginRequest(input: {
 
 export async function fetchMe(): Promise<{ user: AuthUser }> {
   return request('/api/auth/me', { method: 'GET' });
+}
+
+// ── Security questions & password reset ──
+export interface SecurityQuestion {
+  id: string;
+  label: string;
+}
+
+export async function fetchSecurityQuestions(): Promise<{ questions: SecurityQuestion[] }> {
+  return request('/api/auth/security-questions', { method: 'GET' });
+}
+
+export async function forgotLookup(identifier: string): Promise<{
+  username: string;
+  questions: { questionId: string; label: string }[];
+}> {
+  return request('/api/auth/forgot/lookup', {
+    method: 'POST',
+    body: JSON.stringify({ identifier }),
+  });
+}
+
+export async function forgotReset(input: {
+  identifier: string;
+  answers: { questionId: string; answer: string }[];
+  newPassword: string;
+}): Promise<{ ok: boolean; message: string }> {
+  return request('/api/auth/forgot/reset', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
 }
 
 // ── Admin endpoints ──
