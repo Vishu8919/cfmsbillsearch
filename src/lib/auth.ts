@@ -151,3 +151,91 @@ export async function adminSetActive(id: string, isActive: boolean): Promise<{ u
 export async function adminDeleteUser(id: string): Promise<{ ok: boolean; deletedId: string }> {
   return request(`/api/admin/users/${id}`, { method: 'DELETE' });
 }
+
+// ── Batch (cloud bill history) endpoints ──
+// Shape matches the BatchHistoryItem the UI already uses.
+export interface CloudBatch {
+  id: string;
+  name: string;
+  bills: string[];
+  createdAt: number;
+  lastRunAt: number | null;
+  lastSummary: Record<string, number> | null;
+}
+
+export async function listBatches(): Promise<{ batches: CloudBatch[] }> {
+  return request('/api/batches', { method: 'GET' });
+}
+
+export async function createBatch(input: {
+  name?: string;
+  bills: string[];
+  lastRunAt?: number | null;
+  lastSummary?: Record<string, number> | null;
+}): Promise<{ batch: CloudBatch }> {
+  return request('/api/batches', { method: 'POST', body: JSON.stringify(input) });
+}
+
+export async function updateBatch(
+  id: string,
+  input: {
+    name?: string;
+    bills?: string[];
+    lastRunAt?: number | null;
+    lastSummary?: Record<string, number> | null;
+  }
+): Promise<{ batch: CloudBatch }> {
+  return request(`/api/batches/${id}`, { method: 'PATCH', body: JSON.stringify(input) });
+}
+
+export async function deleteBatch(id: string): Promise<{ ok: boolean; deletedId: string }> {
+  return request(`/api/batches/${id}`, { method: 'DELETE' });
+}
+
+export async function migrateBatches(
+  batches: CloudBatch[]
+): Promise<{ migrated: number; batches: CloudBatch[] }> {
+  return request('/api/batches/migrate', {
+    method: 'POST',
+    body: JSON.stringify({ batches }),
+  });
+}
+
+// ── Saved single-bill history (cloud) ──
+export interface CloudSavedBill {
+  id: string;
+  year: string;
+  billNo: string;
+  name: string;
+  timestamp: number;
+}
+
+export async function listSavedBills(): Promise<{ bills: CloudSavedBill[] }> {
+  return request('/api/saved-bills', { method: 'GET' });
+}
+
+export async function saveSavedBill(input: {
+  year: string;
+  billNo: string;
+  name?: string;
+  timestamp?: number;
+}): Promise<{ bill: CloudSavedBill }> {
+  return request('/api/saved-bills', { method: 'POST', body: JSON.stringify(input) });
+}
+
+export async function renameSavedBill(id: string, name: string): Promise<{ bill: CloudSavedBill }> {
+  return request(`/api/saved-bills/${id}`, { method: 'PATCH', body: JSON.stringify({ name }) });
+}
+
+export async function deleteSavedBill(id: string): Promise<{ ok: boolean; deletedId: string }> {
+  return request(`/api/saved-bills/${id}`, { method: 'DELETE' });
+}
+
+export async function migrateSavedBills(
+  bills: { year: string; billNo: string; name?: string; timestamp?: number }[]
+): Promise<{ migrated: number; bills: CloudSavedBill[] }> {
+  return request('/api/saved-bills/migrate', {
+    method: 'POST',
+    body: JSON.stringify({ bills }),
+  });
+}

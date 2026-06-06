@@ -7,6 +7,15 @@ import { Eye, EyeOff } from 'lucide-react'
 import RequireAuth from '../components/RequireAuth'
 import AccountBar from '../components/AccountBar'
 import {
+  listBatches,
+  createBatch as apiCreateBatch,
+  updateBatch as apiUpdateBatch,
+  deleteBatch as apiDeleteBatch,
+  migrateBatches,
+  getToken,
+  CloudBatch,
+} from '../lib/auth'
+import {
   FaRegTrashAlt,
   FaTimes,
   FaHistory,
@@ -121,22 +130,46 @@ function BulkCheck() {
   const sidebarRef = useRef<HTMLDivElement>(null)
   const billsTextRef = useRef<HTMLTextAreaElement>(null)
 
-  // ─── Load history on mount ───
+  // ─── Load history on mount: cloud-first, with localStorage migration + fallback ───
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY)
-      if (stored) {
+    let cancelled = false
+
+    // Read whatever is cached locally (used for migration + offline fallback).
+    function readLocal(): BatchHistoryItem[] {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY)
+        if (!stored) return []
         const parsed = JSON.parse(stored)
-        if (Array.isArray(parsed)) setHistory(parsed)
-        else {
-          localStorage.removeItem(STORAGE_KEY)
-          setHistory([])
-        }
+        return Array.isArray(parsed) ? parsed : []
+      } catch {
+        return []
       }
-    } catch {
-      localStorage.removeItem(STORAGE_KEY)
-      setHistory([])
     }
+
+    async function load() {
+      const local = readLocal()
+      try {
+        let cloud: CloudBatch[]
+        if (local.length > 0) {
+          // One-time (idempotent) migration: push local batches up, get merged list back.
+          const res = await migrateBatches(local as CloudBatch[])
+          cloud = res.batches
+        } else {
+          const res = await listBatches()
+          cloud = res.batches
+        }
+        if (cancelled) return
+        setHistory(cloud)
+        // Mirror cloud → localStorage as a cache/backup.
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cloud)) } catch {}
+      } catch {
+        // Backend unreachable → fall back to whatever is cached locally.
+        if (!cancelled) setHistory(local)
+      }
+    }
+
+    load()
+    return () => { cancelled = true }
   }, [])
 
   // ─── Responsive ───
@@ -178,9 +211,10 @@ function BulkCheck() {
       .filter(Boolean)
   }
 
+  // Update local state + mirror to localStorage (cache/backup for offline).
   function saveHistory(next: BatchHistoryItem[]) {
     setHistory(next)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)) } catch {}
   }
 
   // ─── Submit ───
@@ -207,9 +241,13 @@ function BulkCheck() {
 
     setLoading(true)
     try {
+      const token = getToken()
       const res = await fetch(`${API_URL}/api/check-bills`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ username, password, billNumbers: bills }),
       })
       const data = await res.json()
@@ -217,19 +255,23 @@ function BulkCheck() {
       setResponse(data)
       setProgress(100)
 
-      // ─── Save / update batch history ───
+      // ─── Save / update batch history (cloud-backed, local mirror) ───
       const summary = data.summary?.byVerdict || {}
       if (batchIdOverride) {
-        // Update existing batch's lastRunAt + lastSummary
+        // Update existing batch's lastRunAt + lastSummary (optimistic UI + cloud sync).
         const next = history.map((b) =>
           b.id === batchIdOverride
             ? { ...b, lastRunAt: Date.now(), lastSummary: summary, bills }
             : b
         )
         saveHistory(next)
+        try {
+          await apiUpdateBatch(batchIdOverride, { bills, lastRunAt: Date.now(), lastSummary: summary })
+        } catch { /* keep local copy if cloud update fails */ }
       } else {
-        // Save as a new batch
-        const newItem: BatchHistoryItem = {
+        // Save as a new batch. Create in the cloud, then use the returned
+        // (server-issued) id so future updates/deletes target the right record.
+        const optimistic: BatchHistoryItem = {
           id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
           name: batchName.trim() || `Batch of ${bills.length} bills`,
           bills,
@@ -237,9 +279,19 @@ function BulkCheck() {
           lastRunAt: Date.now(),
           lastSummary: summary,
         }
-        const next = [newItem, ...history].slice(0, MAX_HISTORY)
+        const next = [optimistic, ...history].slice(0, MAX_HISTORY)
         saveHistory(next)
         setBatchName('')
+        try {
+          const { batch } = await apiCreateBatch({
+            name: optimistic.name,
+            bills,
+            lastRunAt: optimistic.lastRunAt,
+            lastSummary: summary,
+          })
+          // Swap the optimistic id for the real server id.
+          saveHistory([batch, ...next.filter((b) => b.id !== optimistic.id)].slice(0, MAX_HISTORY))
+        } catch { /* keep optimistic local copy if cloud create fails */ }
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Request failed'
@@ -272,11 +324,14 @@ function BulkCheck() {
   }
 
   function deleteBatch(id: string) {
+    // Optimistic local removal + mirror, then sync to cloud.
     saveHistory(history.filter((b) => b.id !== id))
+    apiDeleteBatch(id).catch(() => { /* already removed locally */ })
   }
 
   function renameBatch(id: string, newName: string) {
     saveHistory(history.map((b) => (b.id === id ? { ...b, name: newName } : b)))
+    apiUpdateBatch(id, { name: newName }).catch(() => { /* keep local rename */ })
   }
 
   // ─── Export CSV ───

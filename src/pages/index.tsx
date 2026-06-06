@@ -1,17 +1,27 @@
 import { useState, useEffect, useRef } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
-import { FaRegTrashAlt, FaTimes, FaHistory } from 'react-icons/fa'
+import { FaRegTrashAlt, FaTimes, FaHistory, FaLock } from 'react-icons/fa'
 import { motion } from 'framer-motion'
 import { FaPaste } from 'react-icons/fa'
-import RequireAuth from '../components/RequireAuth'
 import AccountBar from '../components/AccountBar'
+import LockedHistoryNotice from '../components/LockedHistoryNotice'
+import { useAuth } from '../context/AuthContext'
+import {
+  listSavedBills,
+  saveSavedBill,
+  renameSavedBill,
+  deleteSavedBill,
+  migrateSavedBills,
+  CloudSavedBill,
+} from '../lib/auth'
 
 interface BillHistoryItem {
   year: string
   billNo: string
   timestamp: number
   name: string
+  cloudId?: string  // server id when synced; absent for local-only items
 }
 
 function Home() {
@@ -19,6 +29,13 @@ function Home() {
   const [billNo, setBillNo] = useState('')
   const [history, setHistory] = useState<BillHistoryItem[]>([])
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
+  const { user } = useAuth()
+
+  // Update state + mirror to localStorage (cache / logged-out store).
+  const saveLocal = (next: BillHistoryItem[]) => {
+    setHistory(next)
+    try { localStorage.setItem('billHistory', JSON.stringify(next)) } catch {}
+  }
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const billNoInputRef = useRef<HTMLInputElement>(null)
   const [isDesktop, setIsDesktop] = useState(false)
@@ -38,6 +55,30 @@ function Home() {
     }
   }
 
+  // Add a searched bill to history (dedupe by year+billNo). Mirrors locally
+  // and, when logged in, syncs to the cloud.
+  const addToHistory = (y: string, b: string) => {
+    const ts = Date.now()
+    const without = history.filter((h) => !(h.year === y && h.billNo === b))
+    const newItem: BillHistoryItem = { year: y, billNo: b, timestamp: ts, name: '' }
+    const next = [newItem, ...without]
+    saveLocal(next)
+    if (user) {
+      saveSavedBill({ year: y, billNo: b, timestamp: ts })
+        .then(({ bill }) => {
+          // tag the local item with its server id for later edit/delete
+          setHistory((prev) => {
+            const tagged = prev.map((h) =>
+              h.year === y && h.billNo === b ? { ...h, cloudId: bill.id } : h
+            )
+            try { localStorage.setItem('billHistory', JSON.stringify(tagged)) } catch {}
+            return tagged
+          })
+        })
+        .catch(() => { /* keep local copy if cloud save fails */ })
+    }
+  }
+
   const handleSearch = () => {
     if (fullBill.trim()) {
       let yearPart: string
@@ -54,10 +95,7 @@ function Home() {
       if (yearPart && billNoPart) {
         setYear(yearPart)
         setBillNo(billNoPart)
-        const newItem = { year: yearPart, billNo: billNoPart, timestamp: Date.now(), name: '' }
-        const updatedHistory = [newItem, ...history]
-        setHistory(updatedHistory)
-        localStorage.setItem('billHistory', JSON.stringify(updatedHistory))
+        addToHistory(yearPart, billNoPart)
         const url = `https://prdcfms.apcfss.in:44300/sap/bc/ui5_ui5/sap/zexp_billstatus/index.html?sap-client=350&billNum=${yearPart}-${billNoPart}`
         window.open(url, '_blank')
         setFullBill('')
@@ -65,10 +103,7 @@ function Home() {
       }
     }
     if (year && billNo) {
-      const newItem = { year, billNo, timestamp: Date.now(), name: '' }
-      const updatedHistory = [newItem, ...history]
-      setHistory(updatedHistory)
-      localStorage.setItem('billHistory', JSON.stringify(updatedHistory))
+      addToHistory(year, billNo)
       const url = `https://prdcfms.apcfss.in:44300/sap/bc/ui5_ui5/sap/zexp_billstatus/index.html?sap-client=350&billNum=${year}-${billNo}`
       window.open(url, '_blank')
       setBillNo('')
@@ -83,18 +118,54 @@ function Home() {
   }, [])
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('billHistory')
-      if (stored) {
+    let cancelled = false
+
+    const readLocal = (): BillHistoryItem[] => {
+      try {
+        const stored = localStorage.getItem('billHistory')
+        if (!stored) return []
         const parsed = JSON.parse(stored)
-        if (Array.isArray(parsed)) setHistory(parsed)
-        else { localStorage.removeItem('billHistory'); setHistory([]) }
+        return Array.isArray(parsed) ? parsed : []
+      } catch {
+        return []
       }
-    } catch {
-      localStorage.removeItem('billHistory')
-      setHistory([])
     }
-  }, [])
+
+    const toLocalShape = (b: CloudSavedBill): BillHistoryItem => ({
+      year: b.year, billNo: b.billNo, name: b.name || '', timestamp: b.timestamp, cloudId: b.id,
+    })
+
+    async function load() {
+      const local = readLocal()
+      // Logged out → just use local history.
+      if (!user) {
+        if (!cancelled) setHistory(local)
+        return
+      }
+      // Logged in → migrate any local bills, then show the merged cloud list.
+      try {
+        let cloud: CloudSavedBill[]
+        if (local.length > 0) {
+          const res = await migrateSavedBills(
+            local.map((h) => ({ year: h.year, billNo: h.billNo, name: h.name, timestamp: h.timestamp }))
+          )
+          cloud = res.bills
+        } else {
+          const res = await listSavedBills()
+          cloud = res.bills
+        }
+        if (cancelled) return
+        const mapped = cloud.map(toLocalShape)
+        setHistory(mapped)
+        try { localStorage.setItem('billHistory', JSON.stringify(mapped)) } catch {}
+      } catch {
+        if (!cancelled) setHistory(local)
+      }
+    }
+
+    load()
+    return () => { cancelled = true }
+  }, [user])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -107,16 +178,22 @@ function Home() {
   }, [isSidebarOpen])
 
   const handleDelete = (index: number) => {
+    const target = history[index]
     const updatedHistory = history.filter((_, idx) => idx !== index)
-    setHistory(updatedHistory)
-    localStorage.setItem('billHistory', JSON.stringify(updatedHistory))
+    saveLocal(updatedHistory)
+    if (user && target?.cloudId) {
+      deleteSavedBill(target.cloudId).catch(() => { /* already removed locally */ })
+    }
   }
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
     const updatedHistory = [...history]
-    updatedHistory[index].name = e.target.value
-    setHistory(updatedHistory)
-    localStorage.setItem('billHistory', JSON.stringify(updatedHistory))
+    updatedHistory[index] = { ...updatedHistory[index], name: e.target.value }
+    saveLocal(updatedHistory)
+    const target = updatedHistory[index]
+    if (user && target?.cloudId) {
+      renameSavedBill(target.cloudId, e.target.value).catch(() => { /* keep local */ })
+    }
   }
 
   const Backdrop = () => (
@@ -263,15 +340,16 @@ function Home() {
               className="w-full mt-4"
             >
               <Link
-                href="/bulk-check"
+                href={user ? '/bulk-check' : '/login?next=%2Fbulk-check'}
                 className="block w-full bg-white/5 hover:bg-white/10 backdrop-blur-sm border border-white/10 text-indigo-100 py-3 rounded-xl text-center text-sm transition-all group"
               >
                 <span className="inline-flex items-center gap-2">
+                  {!user && <FaLock className="w-3 h-3 text-indigo-300/70" />}
                   Check Multiple Bills at Once
                   <span className="group-hover:translate-x-1 transition-transform">→</span>
                 </span>
                 <div className="text-xs text-indigo-300/60 mt-0.5">
-                  Up to 30 bills · Daily batches · CSV export
+                  {user ? 'Up to 30 bills · Daily batches · CSV export' : 'Log in to check up to 30 bills at once'}
                 </div>
               </Link>
             </motion.div>
@@ -344,7 +422,9 @@ function Home() {
             </button>
           </div>
 
-          {history.length === 0 ? (
+          {!user ? (
+            <LockedHistoryNotice />
+          ) : history.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-indigo-200/60">
               <svg className="w-14 h-14 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -456,9 +536,5 @@ function Home() {
 }
 
 export default function HomePage() {
-  return (
-    <RequireAuth>
-      <Home />
-    </RequireAuth>
-  )
+  return <Home />
 }
