@@ -28,6 +28,7 @@ function Home() {
   const [year, setYear] = useState(new Date().getFullYear().toString())
   const [billNo, setBillNo] = useState('')
   const [history, setHistory] = useState<BillHistoryItem[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const { user } = useAuth()
 
@@ -137,12 +138,18 @@ function Home() {
 
     async function load() {
       const local = readLocal()
-      // Logged out → just use local history.
+
+      // Show cached local history IMMEDIATELY (never blank while fetching).
+      if (local.length > 0 && !cancelled) setHistory(local)
+
+      // Logged out → local history is all we have.
       if (!user) {
         if (!cancelled) setHistory(local)
         return
       }
-      // Logged in → migrate any local bills, then show the merged cloud list.
+
+      // Logged in → refresh from cloud in the background and reconcile.
+      setHistoryLoading(true)
       try {
         let cloud: CloudSavedBill[]
         if (local.length > 0) {
@@ -159,7 +166,10 @@ function Home() {
         setHistory(mapped)
         try { localStorage.setItem('billHistory', JSON.stringify(mapped)) } catch {}
       } catch {
-        if (!cancelled) setHistory(local)
+        // Keep local (already shown) if cloud fails.
+        if (!cancelled && local.length === 0) setHistory([])
+      } finally {
+        if (!cancelled) setHistoryLoading(false)
       }
     }
 
@@ -424,6 +434,14 @@ function Home() {
 
           {!user ? (
             <LockedHistoryNotice />
+          ) : historyLoading && history.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-64 text-indigo-200/60">
+              <svg className="w-8 h-8 mb-3 animate-spin opacity-60" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
+              <p className="text-sm">Loading your bills…</p>
+            </div>
           ) : history.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-indigo-200/60">
               <svg className="w-14 h-14 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -123,6 +123,7 @@ function BulkCheck() {
 
   // ─── History state ───
   const [history, setHistory] = useState<BatchHistoryItem[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isDesktop, setIsDesktop] = useState(false)
@@ -148,6 +149,15 @@ function BulkCheck() {
 
     async function load() {
       const local = readLocal()
+
+      // 1) Show cached local history IMMEDIATELY so the sidebar is never
+      //    blank while the (possibly slow) cloud request is in flight.
+      if (local.length > 0 && !cancelled) {
+        setHistory(local)
+      }
+
+      // 2) Then refresh from the cloud in the background and reconcile.
+      setHistoryLoading(true)
       try {
         let cloud: CloudBatch[]
         if (local.length > 0) {
@@ -163,8 +173,10 @@ function BulkCheck() {
         // Mirror cloud → localStorage as a cache/backup.
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cloud)) } catch {}
       } catch {
-        // Backend unreachable → fall back to whatever is cached locally.
-        if (!cancelled) setHistory(local)
+        // Backend unreachable → keep whatever is cached locally (already shown).
+        if (!cancelled && local.length === 0) setHistory([])
+      } finally {
+        if (!cancelled) setHistoryLoading(false)
       }
     }
 
@@ -763,7 +775,12 @@ function BulkCheck() {
             </button>
           </div>
 
-          {history.length === 0 ? (
+          {historyLoading && history.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-64 text-indigo-200/60">
+              <FaSpinner className="w-8 h-8 mb-3 animate-spin opacity-60" />
+              <p className="text-sm">Loading your batches…</p>
+            </div>
+          ) : history.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-indigo-200/60">
               <FaHistory className="w-12 h-12 mb-3 opacity-40" />
               <p className="text-base">No saved batches yet</p>
