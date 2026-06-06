@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { FaRegTrashAlt, FaTimes, FaHistory } from 'react-icons/fa'
 import { motion } from 'framer-motion'
 import { FaPaste } from 'react-icons/fa'
+import RequireAuth from '../components/RequireAuth'
+import AccountBar from '../components/AccountBar'
 
 interface BillHistoryItem {
   year: string
@@ -12,7 +14,7 @@ interface BillHistoryItem {
   name: string
 }
 
-export default function Home() {
+function Home() {
   const [year, setYear] = useState(new Date().getFullYear().toString())
   const [billNo, setBillNo] = useState('')
   const [history, setHistory] = useState<BillHistoryItem[]>([])
@@ -141,6 +143,7 @@ export default function Home() {
         className="bg-gradient-to-br from-gray-900 via-indigo-900 to-violet-900 flex flex-col items-center relative"
         style={{ minHeight: '100dvh', paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}
       >
+        <AccountBar />
         {/* Background blobs */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-0 left-0 w-64 h-64 bg-violet-900 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-blob"></div>
@@ -449,5 +452,13 @@ export default function Home() {
         `}</style>
       </main>
     </>
+  )
+}
+
+export default function HomePage() {
+  return (
+    <RequireAuth>
+      <Home />
+    </RequireAuth>
   )
 }
