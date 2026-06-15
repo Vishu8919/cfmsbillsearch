@@ -53,12 +53,12 @@ export default function Terms() {
             className="bg-white/5 border border-white/10 rounded-2xl p-6 sm:p-10 text-indigo-100/80 space-y-8"
           >
             <p className="text-sm sm:text-base leading-relaxed text-indigo-200/70">
-            These Terms of Service (&quot;Terms&quot;) govern your use of the website
-            <strong className="text-white"> cfmsbillsstatus.online</strong>
-            (&quot;the Service&quot;, &quot;we&quot;, &quot;us&quot;, or &quot;our&quot;).
-            By accessing or using the Service, you agree to be bound by these Terms.
-            If you do not agree, please do not use the Service.
-          </p>
+              These Terms of Service (&quot;Terms&quot;) govern your use of the website
+              <strong className="text-white"> cfmsbillsstatus.online</strong> (&quot;the Service&quot;,
+              &quot;we&quot;, &quot;us&quot;, or &quot;our&quot;). By accessing or using the Service, you agree to be bound
+              by these Terms. If you do not agree, please do not use the Service.
+            </p>
+
             <div className="h-px bg-white/5"></div>
 
             <section className="space-y-3">
@@ -91,7 +91,7 @@ export default function Terms() {
                 <li>Attempt to disrupt, overload, or damage the Service or its infrastructure.</li>
                 <li>Attempt to gain unauthorised access to any part of the Service or its data.</li>
                 <li>Use automated systems to access the Service in a way that places undue load on it.</li>
-                <li>Misuse another person&apos;s bill information or account.</li>
+                <li>Misuse another person&#39;s bill information or account.</li>
               </ul>
             </section>
 
@@ -100,11 +100,11 @@ export default function Terms() {
             <section className="space-y-3">
               <h2 className="text-lg sm:text-xl font-semibold text-white">3. Accounts</h2>
               <p className="text-sm sm:text-base leading-relaxed text-indigo-200/70">
-              We may update these Terms from time to time. Changes take effect when posted
-              on this page, and the &quot;Last updated&quot; date above will reflect the most
-              recent revision. Continued use of the Service after changes means you accept
-              the revised Terms.
-            </p>
+                Some features, such as bulk checking and cross-device history, require you to
+                create an account. You are responsible for keeping your login credentials
+                secure and for all activity that occurs under your account. Please notify us
+                if you believe your account has been compromised.
+              </p>
             </section>
 
             <div className="h-px bg-white/5"></div>
@@ -126,11 +126,11 @@ export default function Terms() {
             <section className="space-y-3">
               <h2 className="text-lg sm:text-xl font-semibold text-white">5. Availability</h2>
               <p className="text-sm sm:text-base leading-relaxed text-indigo-200/70">
-              We provide the Service on an &quot;as is&quot; and &quot;as available&quot; basis.
-              We may modify, suspend, or discontinue any part of the Service at any time
-              without notice. The Service also depends on the official CFMS portal, which
-              may be unavailable or undergoing maintenance at times outside our control.
-            </p>
+                We provide the Service on an &quot;as is&quot; and &quot;as available&quot; basis. We may modify,
+                suspend, or discontinue any part of the Service at any time without notice.
+                The Service also depends on the official CFMS portal, which may be unavailable
+                or undergoing maintenance at times outside our control.
+              </p>
             </section>
 
             <div className="h-px bg-white/5"></div>
@@ -166,11 +166,11 @@ export default function Terms() {
             <section className="space-y-3">
               <h2 className="text-lg sm:text-xl font-semibold text-white">8. Changes to these Terms</h2>
               <p className="text-sm sm:text-base leading-relaxed text-indigo-200/70">
-              We may update these Terms from time to time. Changes take effect when posted
-              on this page, and the &quot;Last updated&quot; date above will reflect the most
-              recent revision. Continued use of the Service after changes means you accept
-              the revised Terms.
-            </p>
+                We may update these Terms from time to time. Changes take effect when posted
+                on this page, and the &quot;Last updated&quot; date above will reflect the most recent
+                revision. Continued use of the Service after changes means you accept the
+                revised Terms.
+              </p>
             </section>
 
             <div className="h-px bg-white/5"></div>

@@ -1,5 +1,6 @@
 // src/pages/articles/cfms-guide-for-employees.tsx
 import ArticleLayout from '../../components/ArticleLayout'
+import Link from 'next/link'
 
 export default function CfmsGuideForEmployees() {
   return (
@@ -14,7 +15,7 @@ export default function CfmsGuideForEmployees() {
         For most Andhra Pradesh government employees, CFMS is something that happens in the
         background — until a salary is late or an allowance does not arrive, and suddenly
         everyone wants to know where the money is. This guide explains the Comprehensive
-        Financial Management System from an employee's point of view: what it is, how your
+        Financial Management System from an employee&#39;s point of view: what it is, how your
         payments move through it, and how to keep track of them yourself.
       </p>
 
@@ -27,7 +28,7 @@ export default function CfmsGuideForEmployees() {
         electronically through CFMS. The system is run by{' '}
         <strong>APCFSS</strong>, the Andhra Pradesh Centre for Financial Systems and
         Services. To understand how CFMS, APCFSS and the treasury relate to each other, see{' '}
-        <a href="/articles/cfms-vs-apcfss-vs-treasury">CFMS vs APCFSS vs Treasury explained</a>.
+        <Link href="/articles/cfms-vs-apcfss-vs-treasury">CFMS vs APCFSS vs Treasury explained</Link>.
       </p>
 
       <h2>How CFMS affects you as an employee</h2>
@@ -66,7 +67,7 @@ export default function CfmsGuideForEmployees() {
         <li>The bill reaches the treasury or Pay and Accounts Office for audit.</li>
         <li>The treasury checks budget availability and correctness.</li>
         <li>Once passed, a payment instruction is generated.</li>
-        <li>The salary is credited to employees' bank accounts.</li>
+        <li>The salary is credited to employees&#39; bank accounts.</li>
       </ol>
       <p>
         Because several steps are involved, there is naturally a gap between a bill being
@@ -82,15 +83,15 @@ export default function CfmsGuideForEmployees() {
       </p>
       <ol>
         <li>Get the bill number from your DDO or office accounts section.</li>
-        <li>Open the <a href="/">CFMS bill status checker</a>.</li>
+        <li>Open the <Link href="/">CFMS bill status checker</Link>.</li>
         <li>Enter the bill number and press Search.</li>
         <li>Read the status to see whether the bill is pending, passed, or paid.</li>
       </ol>
       <p>
         Our step-by-step walkthrough,{' '}
-        <a href="/articles/how-to-check-cfms-bill-status">how to check CFMS bill status online</a>,
+        <Link href="/articles/how-to-check-cfms-bill-status">how to check CFMS bill status online</Link>,
         covers both entry methods in detail, and{' '}
-        <a href="/articles/cfms-bill-status-meaning">what each status means</a> explains how
+        <Link href="/articles/cfms-bill-status-meaning">what each status means</Link> explains how
         to interpret the result.
       </p>
 
@@ -117,7 +118,7 @@ export default function CfmsGuideForEmployees() {
         The checker on this site opens the official status page for that bill directly.
       </p>
 
-      <h3>My bill shows "Passed" but I haven't received the money. Why?</h3>
+      <h3>My bill shows &quot;Passed&quot; but I haven&#39;t received the money. Why?</h3>
       <p>
         Passed means the bill has cleared verification and payment is approved. There is
         often a short gap before the amount is actually released to the bank, especially
@@ -129,7 +130,7 @@ export default function CfmsGuideForEmployees() {
       <p>
         A rejected bill typically has to be raised again after the underlying issue is
         fixed. Speak to your DDO, who can see the reason and prepare a corrected bill. Our
-        guide on <a href="/articles/why-cfms-bill-rejected">why CFMS bills get rejected</a>{' '}
+        guide on <Link href="/articles/why-cfms-bill-rejected">why CFMS bills get rejected</Link>{' '}
         lists the usual causes.
       </p>
 

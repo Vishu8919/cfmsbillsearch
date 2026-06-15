@@ -1,5 +1,6 @@
 // src/pages/articles/cfms-bill-status-meaning.tsx
 import ArticleLayout from '../../components/ArticleLayout'
+import Link from 'next/link'
 
 export default function CfmsBillStatusMeaning() {
   return (
@@ -40,7 +41,7 @@ export default function CfmsBillStatusMeaning() {
         <li>The bill reaches the treasury / PAO for verification.</li>
         <li>It is audited against budget availability, allotment and rules.</li>
         <li>If everything is correct, it is passed and a payment advice is generated.</li>
-        <li>The amount is released to the beneficiary's bank account.</li>
+        <li>The amount is released to the beneficiary&#39;s bank account.</li>
       </ol>
       <p>
         At any point the bill can be held for clarification, returned for correction, or
@@ -90,7 +91,7 @@ export default function CfmsBillStatusMeaning() {
           </tr>
           <tr>
             <td><strong>Payment Released / Paid</strong></td>
-            <td>The treasury has released the funds. The amount is on its way to, or already credited in, the beneficiary's bank account.</td>
+            <td>The treasury has released the funds. The amount is on its way to, or already credited in, the beneficiary&#39;s bank account.</td>
             <td>Check the linked bank account in a day or two.</td>
           </tr>
         </tbody>
@@ -111,9 +112,9 @@ export default function CfmsBillStatusMeaning() {
         financial year-end when treasuries process very high volumes.
       </p>
 
-      <h2>What "Pending At" means on a passed bill</h2>
+      <h2>What &quot;Pending At&quot; means on a passed bill</h2>
       <div className="note">
-        On some bills you will see a <strong>"Pending At"</strong> field even when the bill
+        On some bills you will see a <strong>&quot;Pending At&quot;</strong> field even when the bill
         has been approved. This does not always mean the bill is stuck. For an approved
         bill, that field usually reflects the last desk that handled it, not an outstanding
         objection. Read it together with the main status: if the main status says Passed or
@@ -139,7 +140,7 @@ export default function CfmsBillStatusMeaning() {
       </ul>
       <p>
         If you frequently see returns or rejections, our separate guide on{' '}
-        <a href="/articles/why-cfms-bill-rejected">why CFMS bills get rejected and how to fix them</a>{' '}
+        <Link href="/articles/why-cfms-bill-rejected">why CFMS bills get rejected and how to fix them</Link>{' '}
         goes through the common causes one by one.
       </p>
 
@@ -166,16 +167,16 @@ export default function CfmsBillStatusMeaning() {
         site. Enter the full bill number (for example <code>2026-2575612</code>), or the
         financial year and bill number separately, and the official CFMS status page opens
         directly. For a step-by-step walkthrough, see{' '}
-        <a href="/articles/how-to-check-cfms-bill-status">how to check CFMS bill status online</a>.
+        <Link href="/articles/how-to-check-cfms-bill-status">how to check CFMS bill status online</Link>.
       </p>
 
       <h2>Key takeaways</h2>
       <ul>
-        <li><strong>Pending</strong> means still under check — wait, don't resubmit.</li>
+        <li><strong>Pending</strong> means still under check — wait, don&#39;t resubmit.</li>
         <li><strong>Passed</strong> means approved — payment release follows shortly.</li>
         <li><strong>Returned</strong> is fixable; <strong>Rejected</strong> usually needs a fresh bill.</li>
         <li><strong>Released / Paid</strong> means the money is on its way to the bank.</li>
-        <li>The <strong>"Pending At"</strong> field on an approved bill is informational, not a blocker.</li>
+        <li>The <strong>&quot;Pending At&quot;</strong> field on an approved bill is informational, not a blocker.</li>
       </ul>
       <p>
         Understanding these statuses turns the CFMS portal from a confusing screen into a

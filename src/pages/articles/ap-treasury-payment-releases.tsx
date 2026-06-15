@@ -1,5 +1,6 @@
 // src/pages/articles/ap-treasury-payment-releases.tsx
 import ArticleLayout from '../../components/ArticleLayout'
+import Link from 'next/link'
 
 export default function ApTreasuryPaymentReleases() {
   return (
@@ -11,8 +12,8 @@ export default function ApTreasuryPaymentReleases() {
       readingTime="7 min read"
     >
       <p>
-        One of the most common questions about CFMS is some version of: "My bill was passed,
-        so why hasn't the money arrived?" The answer lies in the difference between a bill
+        One of the most common questions about CFMS is some version of: &quot;My bill was passed,
+        so why hasn&#39;t the money arrived?&quot; The answer lies in the difference between a bill
         being <strong>approved</strong> and the payment being <strong>released</strong>.
         This guide explains how payment releases work in the Andhra Pradesh treasury system
         and what determines the timing.
@@ -23,7 +24,7 @@ export default function ApTreasuryPaymentReleases() {
         A payment release is the step where the treasury actually disburses funds for a bill
         that has cleared verification. Up to that point, the bill has been checked and
         approved; the release is the mechanical act of sending the money to the
-        beneficiary's bank account. In CFMS, this typically appears as a status such as
+        beneficiary&#39;s bank account. In CFMS, this typically appears as a status such as
         <strong> Payment Released</strong> or <strong>Paid</strong>.
       </p>
 
@@ -45,7 +46,7 @@ export default function ApTreasuryPaymentReleases() {
         Between these two there is usually a short gap. A passed bill is essentially a
         guarantee that payment will follow; the release simply completes it. For the full
         list of statuses, see{' '}
-        <a href="/articles/cfms-bill-status-meaning">what each CFMS bill status means</a>.
+        <Link href="/articles/cfms-bill-status-meaning">what each CFMS bill status means</Link>.
       </p>
 
       <h2>Why there is a gap between passing and release</h2>
@@ -99,14 +100,14 @@ export default function ApTreasuryPaymentReleases() {
         You can follow a bill all the way to its release using the bill number:
       </p>
       <ol>
-        <li>Open the <a href="/">CFMS bill status checker</a>.</li>
+        <li>Open the <Link href="/">CFMS bill status checker</Link>.</li>
         <li>Enter the bill number and search.</li>
         <li>If the status shows Passed, the release is the next step.</li>
         <li>When it shows Payment Released or Paid, check the bank account within a day or two.</li>
       </ol>
       <p>
         For the full process of looking up a bill, see{' '}
-        <a href="/articles/how-to-check-cfms-bill-status">how to check CFMS bill status online</a>.
+        <Link href="/articles/how-to-check-cfms-bill-status">how to check CFMS bill status online</Link>.
       </p>
 
       <h2>What to do if a release is taking too long</h2>
@@ -126,7 +127,7 @@ export default function ApTreasuryPaymentReleases() {
         milestones. Passing means the money is approved; releasing means it has actually
         been sent. The gap between them is normal and is driven by batch cycles, banking
         time, volume, and budget availability. Knowing this saves a lot of unnecessary
-        worry when a bill shows "Passed" but the money has not yet arrived — in most cases,
+        worry when a bill shows &quot;Passed&quot; but the money has not yet arrived — in most cases,
         it is simply on its way.
       </p>
     </ArticleLayout>

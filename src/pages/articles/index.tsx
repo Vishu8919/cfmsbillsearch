@@ -12,6 +12,13 @@ const articles = [
     time: '7 min',
   },
   {
+    slug: 'bulk-cfms-bill-check-guide',
+    title: 'How to Check Multiple CFMS Bills at Once',
+    desc: 'Use the bulk checker to look up to 30 bills together, see payment details, export to CSV, and save batches.',
+    tag: 'Getting started',
+    time: '7 min',
+  },
+  {
     slug: 'cfms-bill-status-meaning',
     title: 'What Each CFMS Bill Status Means',
     desc: 'Pending, Passed, Returned, Rejected, Released — every status explained, and what to do next.',

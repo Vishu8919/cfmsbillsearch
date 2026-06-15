@@ -40,7 +40,7 @@ export default function Contact() {
               Contact Us
             </h1>
             <p className="mt-2 text-indigo-200/60 text-sm sm:text-base">
-              Questions, feedback, or suggestions? We would like to hear from you.
+              Questions, feedback, or suggestions? We&#39;d like to hear from you.
             </p>
             <div className="mt-4 h-1 w-24 mx-auto bg-gradient-to-r from-indigo-400/50 to-purple-400/50 rounded-full"></div>
           </motion.div>

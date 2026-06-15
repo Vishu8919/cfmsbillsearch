@@ -1,5 +1,6 @@
 // src/pages/articles/why-cfms-bill-rejected.tsx
 import ArticleLayout from '../../components/ArticleLayout'
+import Link from 'next/link'
 
 export default function WhyCfmsBillRejected() {
   return (
@@ -22,7 +23,7 @@ export default function WhyCfmsBillRejected() {
         Andhra Pradesh CFMS system and explains how to fix or prevent each one.
       </p>
 
-      <h2>Returned vs rejected: know which you're dealing with</h2>
+      <h2>Returned vs rejected: know which you&#39;re dealing with</h2>
       <p>
         Before fixing anything, identify what happened:
       </p>
@@ -39,7 +40,7 @@ export default function WhyCfmsBillRejected() {
       </ul>
       <p>
         For a fuller explanation of these and every other status, see{' '}
-        <a href="/articles/cfms-bill-status-meaning">what each CFMS bill status means</a>.
+        <Link href="/articles/cfms-bill-status-meaning">what each CFMS bill status means</Link>.
       </p>
 
       <h2>1. Wrong or invalid budget head</h2>
@@ -52,7 +53,7 @@ export default function WhyCfmsBillRejected() {
         <strong>Fix:</strong> double-check the Head of Account against the sanction order
         and the budget allotment before submitting. Make sure the major, minor and detailed
         heads all correspond to the type of payment. The{' '}
-        <a href="/articles/cfms-object-heads-list">CFMS Object Heads list</a> shows the
+        <Link href="/articles/cfms-object-heads-list">CFMS Object Heads list</Link> shows the
         correct Detailed and Sub-Detailed Head codes for each kind of expenditure.
       </p>
 
@@ -83,12 +84,12 @@ export default function WhyCfmsBillRejected() {
 
       <h2>4. Beneficiary or bank account problems</h2>
       <p>
-        If the beneficiary's bank account details are wrong, inactive, or not properly
+        If the beneficiary&#39;s bank account details are wrong, inactive, or not properly
         mapped in the system, the payment cannot be released even after the bill is passed.
         Mismatched names or incorrect account numbers are frequent culprits.
       </p>
       <p>
-        <strong>Fix:</strong> verify the beneficiary's account number, IFSC and name
+        <strong>Fix:</strong> verify the beneficiary&#39;s account number, IFSC and name
         against bank records before submitting. Correcting account details after a failure
         is slower than getting them right the first time.
       </p>
@@ -155,9 +156,9 @@ export default function WhyCfmsBillRejected() {
       <h2>What to do once a bill is returned</h2>
       <ol>
         <li>Read the objection or remark carefully — it tells you what is wrong.</li>
-        <li>Fix exactly that issue; don't change unrelated parts of the bill.</li>
+        <li>Fix exactly that issue; don&#39;t change unrelated parts of the bill.</li>
         <li>Re-verify documents and figures around the corrected item.</li>
-        <li>Resubmit and track the status using the <a href="/">bill status checker</a>.</li>
+        <li>Resubmit and track the status using the <Link href="/">bill status checker</Link>.</li>
       </ol>
       <p>
         For a rejected bill, you will usually need to prepare a fresh bill after addressing

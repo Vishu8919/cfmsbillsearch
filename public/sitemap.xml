@@ -21,6 +21,11 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://www.cfmsbillsstatus.online/articles/bulk-cfms-bill-check-guide</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://www.cfmsbillsstatus.online/articles/cfms-bill-status-meaning</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>

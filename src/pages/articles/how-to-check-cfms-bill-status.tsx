@@ -1,5 +1,6 @@
 // src/pages/articles/how-to-check-cfms-bill-status.tsx
 import ArticleLayout from '../../components/ArticleLayout'
+import Link from 'next/link'
 
 export default function HowToCheckCfmsBillStatus() {
   return (
@@ -32,7 +33,7 @@ export default function HowToCheckCfmsBillStatus() {
         <li>On the acknowledgement your DDO or office generates when the bill is submitted.</li>
         <li>In the office bill register maintained by the DDO or superintendent.</li>
         <li>In any SMS or message you may have received about the bill.</li>
-        <li>From your office's accounts or establishment section if you are an employee.</li>
+        <li>From your office&#39;s accounts or establishment section if you are an employee.</li>
       </ul>
 
       <h2>Method 1 — Paste the full bill number</h2>
@@ -41,7 +42,7 @@ export default function HowToCheckCfmsBillStatus() {
         number copied from a message or document.
       </p>
       <ol>
-        <li>Open the <a href="/">CFMS bill status checker</a> on this site.</li>
+        <li>Open the <Link href="/">CFMS bill status checker</Link> on this site.</li>
         <li>Copy your full bill number (for example <code>2026-2575612</code>).</li>
         <li>Paste it into the <strong>Enter Full Bill Number</strong> field. You can tap the paste icon to insert it from your clipboard automatically.</li>
         <li>Press <strong>Search Bill</strong>.</li>
@@ -79,7 +80,7 @@ export default function HowToCheckCfmsBillStatus() {
       </ul>
       <p>
         For a full breakdown of every status and what your next step should be, read{' '}
-        <a href="/articles/cfms-bill-status-meaning">what each CFMS bill status means</a>.
+        <Link href="/articles/cfms-bill-status-meaning">what each CFMS bill status means</Link>.
       </p>
 
       <h2>Checking many bills at once</h2>
@@ -88,14 +89,16 @@ export default function HowToCheckCfmsBillStatus() {
         Looking each one up individually is slow. After logging in, this site offers a
         bulk-check feature that lets you paste up to 30 bill numbers and retrieve all their
         statuses together, with the option to save them as named batches and revisit them
-        later. This is far quicker than opening the portal once per bill.
+        later. This is far quicker than opening the portal once per bill. See the{' '}
+        <Link href="/articles/bulk-cfms-bill-check-guide">guide to checking multiple bills at once</Link>{' '}
+        for the full walkthrough.
       </p>
 
       <h2>Saving your search history</h2>
       <p>
         Every bill you look up is saved to your search history so you can re-open it in one
         tap instead of typing the number again. You can rename entries with labels like
-        "April Salary" or "TA Bill" to keep them organised, and delete the ones you no
+        &quot;April Salary&quot; or &quot;TA Bill&quot; to keep them organised, and delete the ones you no
         longer need. When you are logged in, this history syncs to your account so it is
         available on any device.
       </p>
@@ -108,13 +111,13 @@ export default function HowToCheckCfmsBillStatus() {
         and try again. The bill number you entered is still correct — it is the government
         server that is busy.
       </p>
-      <h3>"No data found" for a valid bill</h3>
+      <h3>&quot;No data found&quot; for a valid bill</h3>
       <p>
         If you are sure the number is right but no data appears, double-check that the year
         and serial parts are not swapped, and that there are no extra spaces. A freshly
         submitted bill can also take a short time to appear in the system.
       </p>
-      <h3>You don't have the bill number</h3>
+      <h3>You don&#39;t have the bill number</h3>
       <p>
         Without the bill number there is no way to look up the status. Ask your DDO or
         office accounts section — they maintain the bill register and can give you the
@@ -133,7 +136,7 @@ export default function HowToCheckCfmsBillStatus() {
       <p>
         Checking a CFMS bill status is simple: get the bill number, enter it using either
         method above, and read the status on the official page that opens. Bookmark the
-        <a href="/"> checker</a> so it is always one tap away, and use the bulk feature if
+        <Link href="/"> checker</Link> so it is always one tap away, and use the bulk feature if
         you regularly track several bills at a time.
       </p>
     </ArticleLayout>

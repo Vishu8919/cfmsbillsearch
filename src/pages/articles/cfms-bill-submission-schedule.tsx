@@ -1,5 +1,6 @@
 // src/pages/articles/cfms-bill-submission-schedule.tsx
 import ArticleLayout from '../../components/ArticleLayout'
+import Link from 'next/link'
 
 const schedule: { window: string; label: string; bills: string }[] = [
   {
@@ -38,7 +39,7 @@ export default function CfmsBillSubmissionSchedule() {
       readingTime="6 min read"
     >
       <p>
-        One question DDOs and office staff ask often is: "When should I submit this bill?"
+        One question DDOs and office staff ask often is: &quot;When should I submit this bill?&quot;
         In Andhra Pradesh, the answer depends on the <em>type</em> of bill. The government
         operates a fixed schedule that assigns different categories of bills to specific date
         windows in each month. Submitting a bill in its correct window helps the Treasury and
@@ -63,7 +64,7 @@ export default function CfmsBillSubmissionSchedule() {
         and also placed an uneven load on CFMS system resources.
       </p>
       <p>
-        To streamline the state's public financial management — and to prioritise flagship and
+        To streamline the state&#39;s public financial management — and to prioritise flagship and
         Centrally Sponsored Scheme payments — the schedule for bill presentation was
         re-introduced. The aim is proper scheduling, efficiency, and predictable processing.
       </p>
@@ -126,7 +127,7 @@ export default function CfmsBillSubmissionSchedule() {
           passing presented bills within a stipulated timeframe.
         </li>
         <li>
-          Payment timing is also subject to the state's ways-and-means (cash) position, so the
+          Payment timing is also subject to the state&#39;s ways-and-means (cash) position, so the
           schedule governs <em>presentation</em>; actual release can depend on fund
           availability.
         </li>
@@ -136,11 +137,11 @@ export default function CfmsBillSubmissionSchedule() {
       <p>
         Submitting on schedule is one part of getting paid smoothly. The other parts are using
         the correct expenditure code and tracking the bill afterwards. See the{' '}
-        <a href="/articles/cfms-object-heads-list">CFMS Object Heads list</a> to choose the
+        <Link href="/articles/cfms-object-heads-list">CFMS Object Heads list</Link> to choose the
         right Detailed/Sub-Detailed Head for your bill, our{' '}
-        <a href="/articles/cfms-guide-for-ddos">guide for DDOs</a> for handling bills
+        <Link href="/articles/cfms-guide-for-ddos">guide for DDOs</Link> for handling bills
         efficiently, and{' '}
-        <a href="/articles/cfms-bill-status-meaning">what each CFMS bill status means</a> to
+        <Link href="/articles/cfms-bill-status-meaning">what each CFMS bill status means</Link> to
         follow a bill once it has been submitted.
       </p>
 

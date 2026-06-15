@@ -43,7 +43,7 @@ export default function PrivacyPolicy() {
               Privacy Policy
             </h1>
             <p className="mt-2 text-indigo-200/60 text-sm">
-              Last updated: <strong className="text-indigo-300/80">May 17, 2026</strong>
+              Last updated: <strong className="text-indigo-300/80">June 15, 2026</strong>
             </p>
             <div className="mt-4 h-1 w-24 mx-auto bg-gradient-to-r from-indigo-400/50 to-purple-400/50 rounded-full"></div>
           </motion.div>
@@ -72,16 +72,61 @@ export default function PrivacyPolicy() {
                 Information We Collect
               </h2>
               <p className="text-sm sm:text-base leading-relaxed text-indigo-200/70">
-                We do <strong className="text-white">not</strong> collect any personally identifiable
-                information (PII) such as your name, email address, or phone number.
+                You can check a single bill on the home page <strong className="text-white">without
+                creating an account</strong>, and without providing any personal information.
               </p>
               <p className="text-sm sm:text-base leading-relaxed text-indigo-200/70">
-                The only data stored is your <strong className="text-white">bill search history</strong>,
-                saved entirely in your browsers{' '}
-                <code className="bg-white/10 px-1 rounded text-indigo-300 text-xs">localStorage</code>.
-                This data never leaves your device and is never transmitted to our servers. You can
-                delete it any time via the history panel.
+                If you choose to <strong className="text-white">create an account</strong> (required
+                only for features such as bulk checking and cross-device history), we store the
+                account details you provide — your <strong className="text-white">username</strong>,
+                a securely hashed <strong className="text-white">password</strong>, and your{' '}
+                <strong className="text-white">security questions</strong> used for password recovery.
+                Your password is never stored in plain text.
               </p>
+              <p className="text-sm sm:text-base leading-relaxed text-indigo-200/70">
+                Your <strong className="text-white">bill search history</strong> is saved in your
+                browser for quick access. When you are logged in, it is also synced to your account so
+                it is available across your devices. You can delete individual entries, or your saved
+                history, at any time.
+              </p>
+            </section>
+
+            <div className="h-px bg-white/5"></div>
+
+            {/* Section 2 — CFMS credentials & OTP (bulk checker) */}
+            <section className="space-y-3">
+              <h2 className="text-lg sm:text-xl font-semibold text-white flex items-center gap-2">
+                <span className="w-7 h-7 rounded-full bg-indigo-500/30 border border-indigo-400/30 flex items-center justify-center text-sm text-indigo-300 flex-shrink-0">2</span>
+                Your CFMS Credentials &amp; OTP
+              </h2>
+              <p className="text-sm sm:text-base leading-relaxed text-indigo-200/70">
+                The <strong className="text-white">bulk bill checker</strong> asks for your official
+                CFMS username and password so it can fetch the status of your bills on your behalf.
+                We want to be completely clear about how this is handled:
+              </p>
+              <ul className="list-disc list-inside space-y-1.5 text-sm text-indigo-200/70">
+                <li>
+                  <strong className="text-white">We do not store your CFMS username or password.</strong>{' '}
+                  They are used only in memory to retrieve your bill statuses for that request, and are
+                  discarded immediately afterwards. They are never written to our database or saved in
+                  our logs.
+                </li>
+                <li>
+                  <strong className="text-white">We never ask for your CFMS OTP.</strong> Sensitive
+                  actions on the official CFMS portal are protected by a one-time password (OTP) sent
+                  directly to you. We do not request, receive, or handle your OTP at any point.
+                </li>
+                <li>
+                  Your CFMS credentials are <strong className="text-white">never shared</strong> with
+                  any third party or used for any purpose other than fetching the bill statuses you ask
+                  for.
+                </li>
+              </ul>
+              <div className="bg-yellow-900/20 border border-yellow-500/20 rounded-xl p-4 text-xs text-yellow-200/70 leading-relaxed">
+                <strong className="text-yellow-300">Please note:</strong> your CFMS credentials are your
+                responsibility. As a general safety practice, only enter them on services you trust, and
+                never share your password or OTP with anyone.
+              </div>
             </section>
 
             <div className="h-px bg-white/5"></div>
@@ -89,7 +134,7 @@ export default function PrivacyPolicy() {
             {/* Section 2 */}
             <section className="space-y-3">
               <h2 className="text-lg sm:text-xl font-semibold text-white flex items-center gap-2">
-                <span className="w-7 h-7 rounded-full bg-indigo-500/30 border border-indigo-400/30 flex items-center justify-center text-sm text-indigo-300 flex-shrink-0">2</span>
+                <span className="w-7 h-7 rounded-full bg-indigo-500/30 border border-indigo-400/30 flex items-center justify-center text-sm text-indigo-300 flex-shrink-0">3</span>
                 Log Data
               </h2>
               <p className="text-sm sm:text-base leading-relaxed text-indigo-200/70">
@@ -105,7 +150,7 @@ export default function PrivacyPolicy() {
             {/* Section 3 — AdSense (critical for approval) */}
             <section className="space-y-3">
               <h2 className="text-lg sm:text-xl font-semibold text-white flex items-center gap-2">
-                <span className="w-7 h-7 rounded-full bg-indigo-500/30 border border-indigo-400/30 flex items-center justify-center text-sm text-indigo-300 flex-shrink-0">3</span>
+                <span className="w-7 h-7 rounded-full bg-indigo-500/30 border border-indigo-400/30 flex items-center justify-center text-sm text-indigo-300 flex-shrink-0">4</span>
                 Google AdSense &amp; Cookies
               </h2>
               <p className="text-sm sm:text-base leading-relaxed text-indigo-200/70">
@@ -150,7 +195,7 @@ export default function PrivacyPolicy() {
             {/* Section 4 */}
             <section className="space-y-3">
               <h2 className="text-lg sm:text-xl font-semibold text-white flex items-center gap-2">
-                <span className="w-7 h-7 rounded-full bg-indigo-500/30 border border-indigo-400/30 flex items-center justify-center text-sm text-indigo-300 flex-shrink-0">4</span>
+                <span className="w-7 h-7 rounded-full bg-indigo-500/30 border border-indigo-400/30 flex items-center justify-center text-sm text-indigo-300 flex-shrink-0">5</span>
                 Third-Party Links
               </h2>
               <p className="text-sm sm:text-base leading-relaxed text-indigo-200/70">
@@ -166,7 +211,7 @@ export default function PrivacyPolicy() {
             {/* Section 5 */}
             <section className="space-y-3">
               <h2 className="text-lg sm:text-xl font-semibold text-white flex items-center gap-2">
-                <span className="w-7 h-7 rounded-full bg-indigo-500/30 border border-indigo-400/30 flex items-center justify-center text-sm text-indigo-300 flex-shrink-0">5</span>
+                <span className="w-7 h-7 rounded-full bg-indigo-500/30 border border-indigo-400/30 flex items-center justify-center text-sm text-indigo-300 flex-shrink-0">6</span>
                 Childrens Privacy
               </h2>
               <p className="text-sm sm:text-base leading-relaxed text-indigo-200/70">
@@ -180,7 +225,7 @@ export default function PrivacyPolicy() {
             {/* Section 6 */}
             <section className="space-y-3">
               <h2 className="text-lg sm:text-xl font-semibold text-white flex items-center gap-2">
-                <span className="w-7 h-7 rounded-full bg-indigo-500/30 border border-indigo-400/30 flex items-center justify-center text-sm text-indigo-300 flex-shrink-0">6</span>
+                <span className="w-7 h-7 rounded-full bg-indigo-500/30 border border-indigo-400/30 flex items-center justify-center text-sm text-indigo-300 flex-shrink-0">7</span>
                 Changes to This Policy
               </h2>
               <p className="text-sm sm:text-base leading-relaxed text-indigo-200/70">
@@ -194,7 +239,7 @@ export default function PrivacyPolicy() {
             {/* Section 7 — Contact */}
             <section className="space-y-3">
               <h2 className="text-lg sm:text-xl font-semibold text-white flex items-center gap-2">
-                <span className="w-7 h-7 rounded-full bg-indigo-500/30 border border-indigo-400/30 flex items-center justify-center text-sm text-indigo-300 flex-shrink-0">7</span>
+                <span className="w-7 h-7 rounded-full bg-indigo-500/30 border border-indigo-400/30 flex items-center justify-center text-sm text-indigo-300 flex-shrink-0">8</span>
                 Contact
               </h2>
               <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-sm space-y-1 text-indigo-200/70">
@@ -202,6 +247,12 @@ export default function PrivacyPolicy() {
                   <span className="text-indigo-300/60">Website: </span>
                   <a href="https://www.cfmsbillsstatus.online" className="text-indigo-400 hover:text-indigo-300 underline underline-offset-2">
                     www.cfmsbillsstatus.online
+                  </a>
+                </p>
+                <p>
+                  <span className="text-indigo-300/60">Email: </span>
+                  <a href="mailto:vishnuthulasi9699@gmail.com" className="text-indigo-400 hover:text-indigo-300 underline underline-offset-2 break-all">
+                    vishnuthulasi9699@gmail.com
                   </a>
                 </p>
                 <p>

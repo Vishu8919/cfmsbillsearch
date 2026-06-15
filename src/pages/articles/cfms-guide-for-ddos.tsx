@@ -1,5 +1,6 @@
 // src/pages/articles/cfms-guide-for-ddos.tsx
 import ArticleLayout from '../../components/ArticleLayout'
+import Link from 'next/link'
 
 export default function CfmsGuideForDdos() {
   return (
@@ -15,7 +16,7 @@ export default function CfmsGuideForDdos() {
         In the Andhra Pradesh CFMS system, the DDO is the officer who creates bills,
         submits them to the treasury, responds to objections, and ultimately makes sure
         salaries, allowances and vendor payments reach the right people. This guide is a
-        practical overview of the DDO's role in CFMS and how to handle bills efficiently.
+        practical overview of the DDO&#39;s role in CFMS and how to handle bills efficiently.
       </p>
 
       <h2>Who is a DDO?</h2>
@@ -23,11 +24,11 @@ export default function CfmsGuideForDdos() {
         A <strong>Drawing and Disbursing Officer</strong> is the official authorised to draw
         funds from the government treasury on behalf of an office or department and disburse
         them to employees, vendors, and other beneficiaries. Every government office has a
-        designated DDO, and in CFMS all of that office's bills are raised and tracked under
-        the DDO's authority.
+        designated DDO, and in CFMS all of that office&#39;s bills are raised and tracked under
+        the DDO&#39;s authority.
       </p>
 
-      <h2>The DDO's core responsibilities</h2>
+      <h2>The DDO&#39;s core responsibilities</h2>
       <ul>
         <li>Preparing and submitting bills correctly in CFMS.</li>
         <li>Ensuring the right Head of Account and available budget for each bill.</li>
@@ -37,7 +38,7 @@ export default function CfmsGuideForDdos() {
         <li>Verifying beneficiary bank details before payments are released.</li>
       </ul>
       <p>
-        Getting these right is what keeps an office's payments flowing. Most delays trace
+        Getting these right is what keeps an office&#39;s payments flowing. Most delays trace
         back to a step in this list being skipped.
       </p>
 
@@ -50,13 +51,13 @@ export default function CfmsGuideForDdos() {
         <li>The bill is queued for the treasury or Pay and Accounts Office.</li>
         <li>A verifying officer audits it against budget, allotment and rules.</li>
         <li>If correct, it is passed and a payment instruction is generated.</li>
-        <li>The treasury releases the amount to the beneficiary's account.</li>
+        <li>The treasury releases the amount to the beneficiary&#39;s account.</li>
         <li>If a problem is found, it is returned to you with an objection.</li>
       </ol>
       <p>
         Understanding this chain helps you explain delays to staff and vendors, and tells
         you where to follow up when a bill stalls. For the meaning of each stage, see{' '}
-        <a href="/articles/cfms-bill-status-meaning">what each CFMS bill status means</a>.
+        <Link href="/articles/cfms-bill-status-meaning">what each CFMS bill status means</Link>.
       </p>
 
       <h2>Tracking many bills efficiently</h2>
@@ -68,7 +69,7 @@ export default function CfmsGuideForDdos() {
       <p>
         After logging in to this site, you can use the bulk-check feature to paste up to 30
         bill numbers and retrieve all their statuses together. You can save the set as a
-        named batch — for example "March Salary Bills" or "Q1 Contingent" — and re-run it
+        named batch — for example &quot;March Salary Bills&quot; or &quot;Q1 Contingent&quot; — and re-run it
         later to see what has moved. This turns a long manual task into a single action.
       </p>
       <h3>Keep a clean bill register</h3>
@@ -87,12 +88,12 @@ export default function CfmsGuideForDdos() {
       </p>
       <div className="note">
         We have a dedicated guide on this:{' '}
-        <a href="/articles/why-cfms-bill-rejected">why a CFMS bill gets rejected or returned and how to fix it</a>,
+        <Link href="/articles/why-cfms-bill-rejected">why a CFMS bill gets rejected or returned and how to fix it</Link>,
         which includes a complete pre-submission checklist you can adopt for your office. For
         choosing the correct expenditure code, see the{' '}
-        <a href="/articles/cfms-object-heads-list">CFMS Object Heads list</a>, and for the dates
+        <Link href="/articles/cfms-object-heads-list">CFMS Object Heads list</Link>, and for the dates
         each bill type should be presented, the{' '}
-        <a href="/articles/cfms-bill-submission-schedule">CFMS bill submission schedule</a>.
+        <Link href="/articles/cfms-bill-submission-schedule">CFMS bill submission schedule</Link>.
       </div>
 
       <h2>Handling returned bills</h2>
@@ -121,7 +122,7 @@ export default function CfmsGuideForDdos() {
 
       <h2>Frequently asked questions</h2>
 
-      <h3>Can I check the status of all my office's bills at once?</h3>
+      <h3>Can I check the status of all my office&#39;s bills at once?</h3>
       <p>
         Yes — the bulk-check feature on this site lets you look up many bills together after
         you log in, and save them as batches for repeated checking.
@@ -129,7 +130,7 @@ export default function CfmsGuideForDdos() {
 
       <h3>A bill is stuck at the same stage for a long time. What should I do?</h3>
       <p>
-        First confirm the status with the <a href="/">checker</a>. If it has genuinely not
+        First confirm the status with the <Link href="/">checker</Link>. If it has genuinely not
         moved, follow up with the treasury or PAO handling it, as there may be an objection
         or a budget issue that needs resolving.
       </p>
@@ -138,14 +139,14 @@ export default function CfmsGuideForDdos() {
       <p>
         A returned bill is sent back for a correctable fix and stays alive; a rejected bill
         is refused and usually has to be raised again. See our{' '}
-        <a href="/articles/cfms-bill-status-meaning">status guide</a> for details.
+        <Link href="/articles/cfms-bill-status-meaning">status guide</Link> for details.
       </p>
 
       <h2>Conclusion</h2>
       <p>
         For a DDO, CFMS rewards discipline: correct heads, available budget, complete
         documents, verified bank details, and clean records. Combine that with efficient
-        tracking — bulk checks and a tidy register — and you will keep your office's
+        tracking — bulk checks and a tidy register — and you will keep your office&#39;s
         payments moving smoothly while spending far less time chasing individual bills.
       </p>
     </ArticleLayout>

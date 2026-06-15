@@ -1,5 +1,6 @@
 // src/pages/articles/cfms-bill-status-faq.tsx
 import Head from 'next/head'
+import Link from 'next/link'
 import ArticleLayout from '../../components/ArticleLayout'
 
 const faqs: { q: string; a: string }[] = [
@@ -123,9 +124,9 @@ export default function CfmsBillStatusFaq() {
         <p>
           Below are answers to the questions we see most often about CFMS bills, payment
           statuses, and how to track them. If you are new to the system, the{' '}
-          <a href="/articles/cfms-guide-for-employees">complete CFMS guide for employees</a>{' '}
+          <Link href="/articles/cfms-guide-for-employees">complete CFMS guide for employees</Link>{' '}
           and the explainer on{' '}
-          <a href="/articles/cfms-bill-status-meaning">what each bill status means</a> are
+          <Link href="/articles/cfms-bill-status-meaning">what each bill status means</Link> are
           good places to start.
         </p>
 
@@ -138,10 +139,10 @@ export default function CfmsBillStatusFaq() {
 
         <h2>Still have a question?</h2>
         <p>
-          If your question isn't answered here, the best people to help with anything about a
+          If your question isn&#39;t answered here, the best people to help with anything about a
           specific bill are your DDO and the office accounts section, who can see the full
           details inside CFMS. For general feedback about this site, see our{' '}
-          <a href="/contact">contact page</a>.
+          <Link href="/contact">contact page</Link>.
         </p>
       </ArticleLayout>
     </>

@@ -1,5 +1,6 @@
 // src/pages/articles/cfms-object-heads-list.tsx
 import ArticleLayout from '../../components/ArticleLayout'
+import Link from 'next/link'
 
 // Object Head groups from G.O. MS No. 69, Dt. 14.08.2019 (Annexure I).
 // Each group is a Detailed Head (DH) with its Sub-Detailed Heads (SDH).
@@ -547,7 +548,7 @@ export default function CfmsObjectHeadsList() {
         code used is a frequent cause of objections and rejections. Using a withdrawn code, or
         a code that does not match the sanction, will hold up the bill. If you frequently face
         returns, our guide on{' '}
-        <a href="/articles/why-cfms-bill-rejected">why CFMS bills get rejected and how to fix them</a>{' '}
+        <Link href="/articles/why-cfms-bill-rejected">why CFMS bills get rejected and how to fix them</Link>{' '}
         covers this and other common issues.
       </p>
 
@@ -556,9 +557,9 @@ export default function CfmsObjectHeadsList() {
         Object Heads tell you <em>what</em> a bill is for. Two other things determine whether
         it gets paid smoothly: submitting it within the correct window, and understanding its
         status afterwards. See the{' '}
-        <a href="/articles/cfms-bill-submission-schedule">CFMS bill submission schedule</a>{' '}
+        <Link href="/articles/cfms-bill-submission-schedule">CFMS bill submission schedule</Link>{' '}
         for the dates different bills must be presented, and{' '}
-        <a href="/articles/cfms-bill-status-meaning">what each CFMS bill status means</a> to
+        <Link href="/articles/cfms-bill-status-meaning">what each CFMS bill status means</Link> to
         track a bill once it is submitted.
       </p>
 

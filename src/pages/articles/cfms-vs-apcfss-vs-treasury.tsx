@@ -1,5 +1,6 @@
 // src/pages/articles/cfms-vs-apcfss-vs-treasury.tsx
 import ArticleLayout from '../../components/ArticleLayout'
+import Link from 'next/link'
 
 export default function CfmsVsApcfssVsTreasury() {
   return (
@@ -25,7 +26,7 @@ export default function CfmsVsApcfssVsTreasury() {
       </ul>
       <p>
         In other words: APCFSS builds and operates CFMS, and the treasury uses CFMS to do
-        its work. Now let's look at each in a little more detail.
+        its work. Now let&#39;s look at each in a little more detail.
       </p>
 
       <h2>What is CFMS?</h2>
@@ -39,7 +40,7 @@ export default function CfmsVsApcfssVsTreasury() {
       </p>
       <p>
         When you check a bill status, you are querying data held in CFMS. Our guide on{' '}
-        <a href="/articles/cfms-bill-status-meaning">what each CFMS bill status means</a>{' '}
+        <Link href="/articles/cfms-bill-status-meaning">what each CFMS bill status means</Link>{' '}
         explains how to read what the system tells you.
       </p>
 
@@ -48,25 +49,25 @@ export default function CfmsVsApcfssVsTreasury() {
         APCFSS is the <strong>Andhra Pradesh Centre for Financial Systems and Services</strong>.
         It is the body responsible for developing, running, and maintaining the CFMS
         platform. Think of APCFSS as the organisation behind the system — it keeps CFMS
-        operational, supports its users, and manages the technology that the state's
+        operational, supports its users, and manages the technology that the state&#39;s
         financial administration relies on.
       </p>
       <p>
-        So when people say a bill is "in CFMS," the system they are referring to is the one
+        So when people say a bill is &quot;in CFMS,&quot; the system they are referring to is the one
         operated by APCFSS. The two names are closely linked, which is part of why they get
         confused — but one is the system and the other is the organisation that runs it.
       </p>
 
       <h2>What is the treasury?</h2>
       <p>
-        The <strong>treasury</strong> is the government's machinery for handling public
+        The <strong>treasury</strong> is the government&#39;s machinery for handling public
         money. Treasuries (and Pay and Accounts Offices) are where bills are verified
         against rules and budget, where they are passed, and from where payments are
         released to beneficiaries. The treasury is a function and a set of offices — and
         today it carries out that function <em>through</em> CFMS.
       </p>
       <p>
-        When your bill is "pending at treasury," it means a verifying officer in the
+        When your bill is &quot;pending at treasury,&quot; it means a verifying officer in the
         treasury is checking it inside the CFMS system before it can be passed and paid.
       </p>
 
@@ -101,7 +102,7 @@ export default function CfmsVsApcfssVsTreasury() {
         bill — its status, an objection, a delayed release — are <strong>treasury</strong>
         matters, handled through your DDO and the relevant treasury office. The CFMS system
         is simply where that work is recorded, and you can read its status yourself with the
-        <a href="/"> bill status checker</a>.
+        <Link href="/"> bill status checker</Link>.
       </p>
 
       <h2>Summary</h2>
