@@ -239,16 +239,22 @@ function Home() {
         </div>
 
         <div
-          className="relative z-10 w-full flex-1 flex items-center justify-center"
+          className="relative z-10 w-full flex-1 flex items-start justify-center"
           style={{ minHeight: '100dvh' }}
         >
-          <div className="w-full max-w-md mx-auto flex flex-col items-center px-4 py-8">
+          <div className="w-full max-w-5xl mx-auto flex flex-col px-4 py-8 lg:py-12">
+
+            {/* ── HERO: tool (left) + intro (right) on desktop, stacked on mobile ── */}
+            <div className="w-full grid grid-cols-1 lg:grid-cols-2 lg:gap-12 items-start">
+
+            {/* LEFT column: title + tool */}
+            <div className="w-full max-w-md mx-auto lg:mx-0 flex flex-col items-center">
 
             {/* Title */}
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="w-full text-center mb-6"
+              className="w-full text-center lg:text-left mb-6"
             >
               <h1 className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-purple-300 tracking-tighter">
                 CFMS Bill Status
@@ -256,7 +262,7 @@ function Home() {
               <p className="mt-2 text-indigo-200/70 text-xs sm:text-sm">
                 CFMS Bills Status Checker AP - Search your bill number
               </p>
-              <div className="mt-3 h-1 w-24 mx-auto bg-gradient-to-r from-indigo-400/50 to-purple-400/50 rounded-full"></div>
+              <div className="mt-3 h-1 w-24 mx-auto lg:mx-0 bg-gradient-to-r from-indigo-400/50 to-purple-400/50 rounded-full"></div>
             </motion.div>
 
             <Backdrop />
@@ -364,6 +370,168 @@ function Home() {
               </Link>
             </motion.div>
 
+            </div>{/* end LEFT column */}
+
+            {/* RIGHT column: hero intro companion (desktop only) */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+              className="hidden lg:flex flex-col justify-center h-full pt-4"
+            >
+              <h2 className="text-2xl xl:text-3xl font-bold text-white leading-snug mb-4">
+                Track any Andhra Pradesh CFMS bill in seconds
+              </h2>
+              <p className="text-indigo-200/70 leading-relaxed mb-5">
+                Enter your bill number to see exactly where your payment stands in the AP
+                treasury process — pending, passed, returned, rejected, or released. Built for
+                government employees and DDOs who need a fast, simple way to check bill status.
+              </p>
+              <ul className="space-y-2.5 mb-6">
+                <li className="flex items-start gap-2 text-sm text-indigo-100/80">
+                  <span className="text-purple-300 mt-0.5">✓</span>
+                  Instant single bill lookup by number
+                </li>
+                <li className="flex items-start gap-2 text-sm text-indigo-100/80">
+                  <span className="text-purple-300 mt-0.5">✓</span>
+                  Check up to 30 bills at once (after login)
+                </li>
+                <li className="flex items-start gap-2 text-sm text-indigo-100/80">
+                  <span className="text-purple-300 mt-0.5">✓</span>
+                  Saved history across your devices
+                </li>
+                <li className="flex items-start gap-2 text-sm text-indigo-100/80">
+                  <span className="text-purple-300 mt-0.5">✓</span>
+                  Free guides on bill status, codes &amp; schedules
+                </li>
+              </ul>
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  href="/articles"
+                  className="inline-flex items-center gap-1 bg-white/10 hover:bg-white/15 border border-white/10 text-indigo-100 px-4 py-2 rounded-lg text-sm transition-all"
+                >
+                  Browse CFMS guides →
+                </Link>
+                <Link
+                  href="/about"
+                  className="inline-flex items-center gap-1 bg-white/5 hover:bg-white/10 border border-white/10 text-indigo-200/80 px-4 py-2 rounded-lg text-sm transition-all"
+                >
+                  How to use
+                </Link>
+              </div>
+            </motion.div>
+
+            </div>{/* end HERO grid */}
+
+            {/* ── CONTENT ZONE: comfortable reading width ── */}
+            <div className="w-full max-w-3xl mx-auto">
+
+            {/* ── Informational content section (SEO + AdSense content) ── */}
+            <motion.section
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.35 }}
+              className="w-full mt-12 bg-white/5 border border-white/10 rounded-2xl p-6 sm:p-8 text-left"
+            >
+              <h2 className="text-xl sm:text-2xl font-bold text-white mb-3">
+                Check Your Andhra Pradesh CFMS Bill Status Online
+              </h2>
+              <p className="text-sm text-indigo-200/70 leading-relaxed mb-4">
+                This free tool lets you check the status of any{' '}
+                <strong className="text-white">Andhra Pradesh CFMS</strong> (Comprehensive
+                Financial Management System) bill using its bill number. Whether you are a
+                government employee waiting on a salary or allowance, or a Drawing and
+                Disbursing Officer (DDO) tracking departmental bills, you can see exactly
+                where a payment stands in the AP treasury process — pending, passed,
+                returned, rejected, or released — in just a few seconds.
+              </p>
+              <p className="text-sm text-indigo-200/70 leading-relaxed mb-6">
+                Enter the full bill number (for example <code className="bg-white/10 px-1.5 py-0.5 rounded text-indigo-300 text-xs">2026-2575612</code>),
+                or type the financial year and bill number separately, then press{' '}
+                <strong className="text-white">Search Bill</strong>. The official CFMS bill
+                status page opens directly with your result. Every bill you look up is saved
+                to your history so you can revisit it later in one tap.
+              </p>
+
+              <h3 className="text-base sm:text-lg font-semibold text-white mb-2">
+                What you can do with this tool
+              </h3>
+              <ul className="list-disc list-inside space-y-1.5 text-sm text-indigo-200/70 mb-6">
+                <li>Check a single CFMS bill status instantly by bill number</li>
+                <li>Look up the year and bill number separately or paste the full number</li>
+                <li>Save and rename bills in your search history for quick access</li>
+                <li>Check up to 30 bills at once with bulk checking (after logging in)</li>
+                <li>Access your saved bills across devices when signed in</li>
+              </ul>
+
+              <h3 className="text-base sm:text-lg font-semibold text-white mb-2">
+                Understanding your CFMS bill status
+              </h3>
+              <p className="text-sm text-indigo-200/70 leading-relaxed mb-3">
+                The status of your bill tells you where your payment is in the treasury
+                pipeline. <strong className="text-white">Pending</strong> means the bill is
+                still being checked; <strong className="text-white">Passed</strong> means it
+                has cleared verification and payment will follow;{' '}
+                <strong className="text-white">Returned</strong> means it was sent back for a
+                correction; <strong className="text-white">Rejected</strong> means it was
+                refused; and <strong className="text-white">Payment Released</strong> means
+                the money is on its way to the bank account.
+              </p>
+              <p className="text-sm text-indigo-200/70 leading-relaxed mb-6">
+                Want to understand each stage in detail? Our guides explain{' '}
+                <Link href="/articles/cfms-bill-status-meaning" className="text-indigo-300 hover:text-white underline underline-offset-2">
+                  what every CFMS bill status means
+                </Link>
+                ,{' '}
+                <Link href="/articles/why-cfms-bill-rejected" className="text-indigo-300 hover:text-white underline underline-offset-2">
+                  why bills get rejected and how to fix them
+                </Link>
+                , and{' '}
+                <Link href="/articles/how-to-check-cfms-bill-status" className="text-indigo-300 hover:text-white underline underline-offset-2">
+                  how to check your bill status step by step
+                </Link>
+                .
+              </p>
+
+              <h3 className="text-base sm:text-lg font-semibold text-white mb-3">
+                Popular CFMS guides
+              </h3>
+              <div className="grid sm:grid-cols-2 gap-2 mb-2">
+                <Link href="/articles/cfms-guide-for-employees" className="text-sm text-indigo-200/70 hover:text-white bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg px-3 py-2 transition-all">
+                  CFMS guide for AP employees →
+                </Link>
+                <Link href="/articles/cfms-guide-for-ddos" className="text-sm text-indigo-200/70 hover:text-white bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg px-3 py-2 transition-all">
+                  CFMS guide for DDOs →
+                </Link>
+                <Link href="/articles/cfms-bill-submission-schedule" className="text-sm text-indigo-200/70 hover:text-white bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg px-3 py-2 transition-all">
+                  Bill submission schedule →
+                </Link>
+                <Link href="/articles/cfms-object-heads-list" className="text-sm text-indigo-200/70 hover:text-white bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg px-3 py-2 transition-all">
+                  CFMS Object Heads list →
+                </Link>
+                <Link href="/articles/ap-treasury-payment-releases" className="text-sm text-indigo-200/70 hover:text-white bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg px-3 py-2 transition-all">
+                  Understanding payment releases →
+                </Link>
+                <Link href="/articles/cfms-bill-status-faq" className="text-sm text-indigo-200/70 hover:text-white bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg px-3 py-2 transition-all">
+                  CFMS bill status FAQ →
+                </Link>
+              </div>
+              <Link
+                href="/articles"
+                className="inline-flex items-center gap-1 mt-3 text-sm text-indigo-300 hover:text-white transition-colors"
+              >
+                Browse all CFMS guides
+                <span>→</span>
+              </Link>
+
+              <div className="mt-6 bg-yellow-900/20 border border-yellow-500/20 rounded-xl p-4 text-xs text-yellow-200/70 leading-relaxed">
+                <strong className="text-yellow-300">Disclaimer:</strong> This is a free,
+                unofficial tool and is not affiliated with, endorsed by, or connected to the
+                Andhra Pradesh government or APCFSS. All bill status information is fetched
+                directly from the official CFMS portal (prdcfms.apcfss.in).
+              </div>
+            </motion.section>
+
             {/* Footer links */}
             {/* Footer links */}
 <motion.div
@@ -373,12 +541,30 @@ function Home() {
               className="w-full mt-6 text-center text-xs text-indigo-200/50"
             >
               {/* Links row */}
-              <div className="flex items-center justify-center">
+              <div className="flex items-center justify-center flex-wrap gap-y-2">
                 <Link
                   href="/about"
                   className="hover:text-indigo-300 transition-colors underline underline-offset-2"
                 >
-                  About &amp; How to Use
+                  About
+                </Link>
+
+                <span className="mx-3 text-indigo-200/20">•</span>
+
+                <Link
+                  href="/articles"
+                  className="hover:text-indigo-300 transition-colors underline underline-offset-2"
+                >
+                  Guides
+                </Link>
+
+                <span className="mx-3 text-indigo-200/20">•</span>
+
+                <Link
+                  href="/contact"
+                  className="hover:text-indigo-300 transition-colors underline underline-offset-2"
+                >
+                  Contact
                 </Link>
 
                 <span className="mx-3 text-indigo-200/20">•</span>
@@ -388,6 +574,15 @@ function Home() {
                   className="hover:text-indigo-300 transition-colors underline underline-offset-2"
                 >
                   Privacy Policy
+                </Link>
+
+                <span className="mx-3 text-indigo-200/20">•</span>
+
+                <Link
+                  href="/terms"
+                  className="hover:text-indigo-300 transition-colors underline underline-offset-2"
+                >
+                  Terms
                 </Link>
               </div>
 
@@ -402,6 +597,8 @@ function Home() {
                 </p>
               </div>
             </motion.div>
+
+            </div>{/* end CONTENT ZONE */}
 
           </div>
         </div>

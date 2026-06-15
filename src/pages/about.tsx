@@ -164,8 +164,20 @@ export default function About() {
                 Home
               </Link>
               <span className="text-indigo-200/20">·</span>
+              <Link href="/articles" className="hover:text-indigo-300 transition-colors underline underline-offset-2">
+                Articles
+              </Link>
+              <span className="text-indigo-200/20">·</span>
+              <Link href="/contact" className="hover:text-indigo-300 transition-colors underline underline-offset-2">
+                Contact
+              </Link>
+              <span className="text-indigo-200/20">·</span>
               <Link href="/privacy-policy" className="hover:text-indigo-300 transition-colors underline underline-offset-2">
                 Privacy Policy
+              </Link>
+              <span className="text-indigo-200/20">·</span>
+              <Link href="/terms" className="hover:text-indigo-300 transition-colors underline underline-offset-2">
+                Terms
               </Link>
             </div>
           </motion.div>
