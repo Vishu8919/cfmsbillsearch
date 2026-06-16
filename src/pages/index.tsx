@@ -5,6 +5,7 @@ import { FaRegTrashAlt, FaTimes, FaHistory, FaLock, FaLayerGroup } from 'react-i
 import { motion } from 'framer-motion'
 import { FaPaste } from 'react-icons/fa'
 import AccountBar from '../components/AccountBar'
+import ArticlesSidebar from '../components/ArticlesSidebar'
 import LockedHistoryNotice from '../components/LockedHistoryNotice'
 import { useAuth } from '../context/AuthContext'
 import {
@@ -242,19 +243,25 @@ function Home() {
           className="relative z-10 w-full flex-1 flex items-start justify-center"
           style={{ minHeight: '100dvh' }}
         >
-          <div className="w-full max-w-5xl mx-auto flex flex-col px-4 py-8 lg:py-12">
+          <div className="w-full max-w-6xl mx-auto flex gap-6 lg:gap-8 px-4 py-8 lg:py-12 items-start">
 
-            {/* ── HERO: tool (left) + intro (right) on desktop, stacked on mobile ── */}
-            <div className="w-full grid grid-cols-1 lg:grid-cols-2 lg:gap-12 items-start">
+            {/* ── Articles sidebar (sticky dock on desktop, drawer on mobile) ── */}
+            <ArticlesSidebar />
 
-            {/* LEFT column: title + tool */}
-            <div className="w-full max-w-md mx-auto lg:mx-0 flex flex-col items-center">
+            {/* ── Main content column ── */}
+            <div className="flex-1 min-w-0 flex flex-col">
+
+            {/* ── HERO: the tool ── */}
+            <div className="w-full">
+
+            {/* Tool column */}
+            <div className="w-full max-w-md mx-auto flex flex-col items-center">
 
             {/* Title */}
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="w-full text-center lg:text-left mb-6"
+              className="w-full text-center mb-6"
             >
               <h1 className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-purple-300 tracking-tighter">
                 CFMS Bill Status
@@ -262,7 +269,7 @@ function Home() {
               <p className="mt-2 text-indigo-200/70 text-xs sm:text-sm">
                 CFMS Bills Status Checker AP - Search your bill number
               </p>
-              <div className="mt-3 h-1 w-24 mx-auto lg:mx-0 bg-gradient-to-r from-indigo-400/50 to-purple-400/50 rounded-full"></div>
+              <div className="mt-3 h-1 w-24 mx-auto bg-gradient-to-r from-indigo-400/50 to-purple-400/50 rounded-full"></div>
             </motion.div>
 
             <Backdrop />
@@ -403,58 +410,9 @@ function Home() {
               </div>
             </motion.div>
 
-            </div>{/* end LEFT column */}
+            </div>{/* end Tool column */}
 
-            {/* RIGHT column: hero intro companion (desktop only) */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-              className="hidden lg:flex flex-col justify-center h-full pt-4"
-            >
-              <h2 className="text-2xl xl:text-3xl font-bold text-white leading-snug mb-4">
-                Track any Andhra Pradesh CFMS bill in seconds
-              </h2>
-              <p className="text-indigo-200/70 leading-relaxed mb-5">
-                Enter your bill number to see exactly where your payment stands in the AP
-                treasury process — pending, passed, returned, rejected, or released. Built for
-                government employees and DDOs who need a fast, simple way to check bill status.
-              </p>
-              <ul className="space-y-2.5 mb-6">
-                <li className="flex items-start gap-2 text-sm text-indigo-100/80">
-                  <span className="text-purple-300 mt-0.5">✓</span>
-                  Instant single bill lookup by number
-                </li>
-                <li className="flex items-start gap-2 text-sm text-indigo-100/80">
-                  <span className="text-purple-300 mt-0.5">✓</span>
-                  Check up to 30 bills at once (after login)
-                </li>
-                <li className="flex items-start gap-2 text-sm text-indigo-100/80">
-                  <span className="text-purple-300 mt-0.5">✓</span>
-                  Saved history across your devices
-                </li>
-                <li className="flex items-start gap-2 text-sm text-indigo-100/80">
-                  <span className="text-purple-300 mt-0.5">✓</span>
-                  Free guides on bill status, codes &amp; schedules
-                </li>
-              </ul>
-              <div className="flex flex-wrap gap-2">
-                <Link
-                  href="/articles"
-                  className="inline-flex items-center gap-1 bg-white/10 hover:bg-white/15 border border-white/10 text-indigo-100 px-4 py-2 rounded-lg text-sm transition-all"
-                >
-                  Browse CFMS guides →
-                </Link>
-                <Link
-                  href="/about"
-                  className="inline-flex items-center gap-1 bg-white/5 hover:bg-white/10 border border-white/10 text-indigo-200/80 px-4 py-2 rounded-lg text-sm transition-all"
-                >
-                  How to use
-                </Link>
-              </div>
-            </motion.div>
-
-            </div>{/* end HERO grid */}
+            </div>{/* end HERO */}
 
             {/* ── CONTENT ZONE: comfortable reading width ── */}
             <div className="w-full max-w-3xl mx-auto">
@@ -635,6 +593,8 @@ function Home() {
             </motion.div>
 
             </div>{/* end CONTENT ZONE */}
+
+            </div>{/* end Main content column */}
 
           </div>
         </div>
