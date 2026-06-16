@@ -164,19 +164,15 @@ export default function ArticlesSidebar() {
         </AnimatePresence>
       </div>
 
-      {/* ========== MOBILE: trigger button ========== */}
+      {/* ========== MOBILE: trigger button (bottom-left floating) ========== */}
       <button
         onClick={() => setDrawerOpen(true)}
         aria-label="Open guides"
-        className="lg:hidden fixed left-3 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-1.5 bg-gradient-to-b from-indigo-600/90 to-purple-600/90 backdrop-blur-sm border border-white/15 rounded-r-xl rounded-l-md pl-1.5 pr-2 py-3 shadow-lg shadow-purple-900/30"
+        className="lg:hidden fixed left-4 z-30 flex items-center gap-2 bg-gradient-to-br from-indigo-600 to-purple-600 text-white rounded-full pl-3.5 pr-4 py-3 shadow-xl ring-2 ring-white/20"
+        style={{ bottom: 'max(16px, env(safe-area-inset-bottom))' }}
       >
-        <FaBookOpen className="w-4 h-4 text-white" />
-        <span
-          className="text-[10px] font-semibold uppercase tracking-wider text-white"
-          style={{ writingMode: 'vertical-rl' }}
-        >
-          Guides
-        </span>
+        <FaBookOpen className="w-4 h-4" />
+        <span className="text-sm font-semibold">Guides</span>
       </button>
 
       {/* ========== MOBILE: slide-in drawer ========== */}

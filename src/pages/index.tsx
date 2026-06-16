@@ -243,7 +243,7 @@ function Home() {
           className="relative z-10 w-full flex-1 flex items-start justify-center"
           style={{ minHeight: '100dvh' }}
         >
-          <div className="w-full max-w-6xl mx-auto flex gap-6 lg:gap-8 px-4 py-8 lg:py-12 items-start">
+          <div className="w-full max-w-6xl mx-auto flex gap-6 lg:gap-8 px-4 pt-20 pb-8 lg:py-12 items-start">
 
             {/* ── Articles sidebar (sticky dock on desktop, drawer on mobile) ── */}
             <ArticlesSidebar />
