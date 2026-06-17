@@ -618,7 +618,14 @@ function BulkCheck() {
                     />
                   </div>
                   <p className="text-xs text-indigo-300/60 mt-2">
-                    Authenticating and reading {parseBills(billsText).length} bills… (~{Math.max(8, Math.ceil(parseBills(billsText).length * 4))}s)
+                    {(() => {
+                      const n = parseBills(billsText).length
+                      // Real-world timing (concurrency=3 on the current instance):
+                      // ~15s fixed startup (browser launch + auth) + ~9.5s per bill.
+                      // Biased to slightly over-estimate so the actual finish feels fast.
+                      const est = Math.max(12, Math.round(15 + n * 9.5))
+                      return <>Authenticating and reading {n} bills… (~{est}s)</>
+                    })()}
                   </p>
                 </div>
               )}
