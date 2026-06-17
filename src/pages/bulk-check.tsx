@@ -26,11 +26,20 @@ import {
   FaSpinner,
   FaChevronDown,
   FaChevronUp,
+  FaExclamationTriangle,
 } from 'react-icons/fa'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:10000'
 
 // ───── Types ─────
+type BillNote = {
+  seq: number
+  author: string
+  date: string
+  remark: string
+  problemLabel?: string | null
+}
+
 type BillResult = {
   billNumber: string
   verdict: string
@@ -44,6 +53,11 @@ type BillResult = {
   paymentDate?: string | null
   userDescription?: string
   error?: string
+  // ── Processor/auditor notes (e.g. "...bill may be returned") ──
+  notes?: BillNote[]
+  latestNote?: BillNote | null
+  problemNotes?: BillNote[]
+  hasNoteWarning?: boolean
 }
 
 type ApiResponse = {
@@ -74,6 +88,7 @@ const VERDICT_LABEL: Record<string, string> = {
   STUCK_AT_EE: 'At Executive Engineer',
   REJECTED: 'Rejected',
   RETURNED: 'Returned',
+  NOTE_FLAGGED_RETURN: 'Flagged — May Be Returned',
   ERROR: 'Error',
   AUTH_FAILED: 'Auth Failed',
   PAGE_LOAD_FAILED: 'Page Failed',
@@ -91,6 +106,7 @@ const VERDICT_PILL: Record<string, string> = {
   STUCK_AT_EE: 'bg-orange-500/20 text-orange-200 border-orange-400/30',
   REJECTED: 'bg-red-500/20 text-red-200 border-red-400/30',
   RETURNED: 'bg-red-500/20 text-red-200 border-red-400/30',
+  NOTE_FLAGGED_RETURN: 'bg-rose-500/25 text-rose-100 border-rose-400/50',
   ERROR: 'bg-red-500/20 text-red-200 border-red-400/30',
   AUTH_FAILED: 'bg-red-500/20 text-red-200 border-red-400/30',
   PAGE_LOAD_FAILED: 'bg-red-500/20 text-red-200 border-red-400/30',
@@ -101,6 +117,7 @@ const VERDICT_ICON: Record<string, React.ReactNode> = {
   PAID: <FaCheckCircle className="w-3 h-3" />,
   APPROVED_PAYMENT_PENDING: <FaClock className="w-3 h-3" />,
   APPROVED: <FaCheckCircle className="w-3 h-3" />,
+  NOTE_FLAGGED_RETURN: <FaExclamationTriangle className="w-3 h-3" />,
 }
 
 const STORAGE_KEY = 'bulkBillHistory'
@@ -353,20 +370,28 @@ function BulkCheck() {
       'Bill Number', 'Description', 'Verdict', 'Bill Status',
       'Pending At', 'Pending Action', 'Net Amount',
       'Beneficiary', 'Payment Status', 'Payment Ref', 'Payment Date',
+      'Note Warning', 'Note Remark', 'Note By', 'Note Date',
     ]
-    const rows = response.results.map((r) => [
-      r.billNumber,
-      r.userDescription || '',
-      r.verdict,
-      r.billStatus || '',
-      r.pendingAt || '',
-      r.pendingAction || '',
-      r.netAmount || '',
-      r.beneficiaryName || '',
-      r.paymentStatus || '',
-      r.paymentRef || '',
-      r.paymentDate || '',
-    ])
+    const rows = response.results.map((r) => {
+      const prob = r.problemNotes && r.problemNotes.length > 0 ? r.problemNotes[0] : null
+      return [
+        r.billNumber,
+        r.userDescription || '',
+        r.verdict,
+        r.billStatus || '',
+        r.pendingAt || '',
+        r.pendingAction || '',
+        r.netAmount || '',
+        r.beneficiaryName || '',
+        r.paymentStatus || '',
+        r.paymentRef || '',
+        r.paymentDate || '',
+        prob?.problemLabel || '',
+        prob?.remark || '',
+        prob?.author || '',
+        prob?.date || '',
+      ]
+    })
     const csv = [headers, ...rows]
       .map((row) => row.map((c) => `"${String(c ?? '').replace(/"/g, '""')}"`).join(','))
       .join('\n')
@@ -664,6 +689,26 @@ function BulkCheck() {
                                 {VERDICT_LABEL[r.verdict] || r.verdict}
                               </span>
                             </div>
+
+                            {/* ── Problem-note warning (auditor flagged a return / objection) ── */}
+                            {r.hasNoteWarning && r.problemNotes && r.problemNotes.length > 0 && (
+                              <div className="mt-3 rounded-lg border border-rose-400/40 bg-rose-500/10 p-3">
+                                {r.problemNotes.map((note, i) => (
+                                  <div key={i} className={i > 0 ? 'mt-2 pt-2 border-t border-rose-400/20' : ''}>
+                                    <div className="flex items-center gap-1.5 text-rose-200 text-xs font-semibold">
+                                      <FaExclamationTriangle className="w-3 h-3 flex-shrink-0" />
+                                      {note.problemLabel}
+                                    </div>
+                                    <div className="text-[13px] text-rose-50/90 mt-1 leading-snug">
+                                      “{note.remark}”
+                                    </div>
+                                    <div className="text-[11px] text-rose-200/60 mt-1">
+                                      — {note.author}{note.date ? ` · ${note.date}` : ''}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
 
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3 text-xs">
                               <div>
