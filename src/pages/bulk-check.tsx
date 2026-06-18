@@ -74,6 +74,7 @@ type BatchHistoryItem = {
   createdAt: number
   lastRunAt: number | null
   lastSummary: Record<string, number> | null
+  source?: 'synced' | 'local'  // where this batch lives (account vs this device)
 }
 
 // ───── Verdict styling ─────
@@ -121,6 +122,7 @@ const VERDICT_ICON: Record<string, React.ReactNode> = {
 }
 
 const STORAGE_KEY = 'bulkBillHistory'
+const MIGRATED_FLAG = 'bulkBillHistory_migrated_v2'
 const MAX_HISTORY = 50
 
 function BulkCheck() {
@@ -148,11 +150,15 @@ function BulkCheck() {
   const sidebarRef = useRef<HTMLDivElement>(null)
   const billsTextRef = useRef<HTMLTextAreaElement>(null)
 
-  // ─── Load history on mount: cloud-first, with localStorage migration + fallback ───
+  // ─── Load history on mount ───
+  // IMPORTANT: migration from localStorage runs ONCE per device (guarded by a
+  // flag). After that we ONLY list from the cloud — the cloud is the source of
+  // truth. The old code re-ran migration on every load, which (because client
+  // batch ids change after the first migration) spawned duplicate batches on
+  // every refresh until the 50-batch cap was hit. Migrate-once kills that loop.
   useEffect(() => {
     let cancelled = false
 
-    // Read whatever is cached locally (used for migration + offline fallback).
     function readLocal(): BatchHistoryItem[] {
       try {
         const stored = localStorage.getItem(STORAGE_KEY)
@@ -166,28 +172,35 @@ function BulkCheck() {
 
     async function load() {
       const local = readLocal()
+      const alreadyMigrated = (() => {
+        try { return localStorage.getItem(MIGRATED_FLAG) === '1' } catch { return false }
+      })()
 
-      // 1) Show cached local history IMMEDIATELY so the sidebar is never
-      //    blank while the (possibly slow) cloud request is in flight.
+      // Show cached local history immediately so the sidebar isn't blank while
+      // the (possibly slow) cloud request is in flight.
       if (local.length > 0 && !cancelled) {
-        setHistory(local)
+        setHistory(local.map((b) => ({ ...b, source: 'synced' as const })))
       }
 
-      // 2) Then refresh from the cloud in the background and reconcile.
       setHistoryLoading(true)
       try {
         let cloud: CloudBatch[]
-        if (local.length > 0) {
-          // One-time (idempotent) migration: push local batches up, get merged list back.
+        if (local.length > 0 && !alreadyMigrated) {
+          // FIRST login on this device with local history → migrate once.
           const res = await migrateBatches(local as CloudBatch[])
           cloud = res.batches
+          try { localStorage.setItem(MIGRATED_FLAG, '1') } catch {}
         } else {
+          // Normal path: cloud is authoritative. Never re-migrate.
           const res = await listBatches()
           cloud = res.batches
+          // Mark migrated so we never accidentally re-upload the local cache.
+          try { localStorage.setItem(MIGRATED_FLAG, '1') } catch {}
         }
         if (cancelled) return
-        setHistory(cloud)
-        // Mirror cloud → localStorage as a cache/backup.
+        const tagged = cloud.map((b) => ({ ...b, source: 'synced' as const }))
+        setHistory(tagged)
+        // Mirror cloud → localStorage purely as an offline cache (never re-uploaded).
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cloud)) } catch {}
       } catch {
         // Backend unreachable → keep whatever is cached locally (already shown).
@@ -307,6 +320,7 @@ function BulkCheck() {
           createdAt: Date.now(),
           lastRunAt: Date.now(),
           lastSummary: summary,
+          source: 'synced',
         }
         const next = [optimistic, ...history].slice(0, MAX_HISTORY)
         saveHistory(next)
@@ -319,7 +333,7 @@ function BulkCheck() {
             lastSummary: summary,
           })
           // Swap the optimistic id for the real server id.
-          saveHistory([batch, ...next.filter((b) => b.id !== optimistic.id)].slice(0, MAX_HISTORY))
+          saveHistory([{ ...batch, source: 'synced' as const }, ...next.filter((b) => b.id !== optimistic.id)].slice(0, MAX_HISTORY))
         } catch { /* keep optimistic local copy if cloud create fails */ }
       }
     } catch (err) {
@@ -620,10 +634,8 @@ function BulkCheck() {
                   <p className="text-xs text-indigo-300/60 mt-2">
                     {(() => {
                       const n = parseBills(billsText).length
-                      // Real-world timing (concurrency=3 on the current instance):
-                      // ~15s fixed startup (browser launch + auth) + ~9.5s per bill.
-                      // Biased to slightly over-estimate so the actual finish feels fast.
-                      const est = Math.max(12, Math.round(15 + n * 9.5))
+                      // ~10s per bill (measured at concurrency=3 on the current instance).
+                      const est = Math.max(10, n * 10)
                       return <>Authenticating and reading {n} bills… (~{est}s)</>
                     })()}
                   </p>
@@ -895,6 +907,16 @@ function BulkCheck() {
                         <span className="text-indigo-200/20">·</span>
                         <span>last run {formatRelative(batch.lastRunAt)}</span>
                       </>
+                    )}
+                    <span className="text-indigo-200/20">·</span>
+                    {batch.source === 'local' ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-indigo-200/70" title="Saved only on this device — log in to sync">
+                        <FaHistory className="w-2 h-2" /> On this device
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-400/25 text-emerald-200/80" title="Saved to your account — available on all your devices">
+                        <FaCheckCircle className="w-2 h-2" /> Synced to account
+                      </span>
                     )}
                   </div>
 
