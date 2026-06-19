@@ -93,7 +93,7 @@ const VERDICT_LABEL: Record<string, string> = {
   ERROR: 'Error',
   AUTH_FAILED: 'Auth Failed',
   PAGE_LOAD_FAILED: 'Page Failed',
-  UNKNOWN: 'Unknown',
+  UNKNOWN: 'Could not read',
 }
 
 const VERDICT_PILL: Record<string, string> = {
@@ -136,9 +136,11 @@ function BulkCheck() {
   // ─── Request state ───
   const [loading, setLoading] = useState(false)
   const [progress, setProgress] = useState(0)
+  const [elapsed, setElapsed] = useState(0) // seconds since "Check All Bills" was clicked
   const [error, setError] = useState<string | null>(null)
   const [response, setResponse] = useState<ApiResponse | null>(null)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
+  const [retryingBills, setRetryingBills] = useState<Record<string, boolean>>({})
 
   // ─── History state ───
   const [history, setHistory] = useState<BatchHistoryItem[]>([])
@@ -148,6 +150,17 @@ function BulkCheck() {
   const [isDesktop, setIsDesktop] = useState(false)
 
   const sidebarRef = useRef<HTMLDivElement>(null)
+
+  // ─── Live elapsed timer: ticks every second while a check is running ───
+  useEffect(() => {
+    if (!loading) return
+    const startedAt = Date.now()
+    setElapsed(0)
+    const id = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startedAt) / 1000))
+    }, 1000)
+    return () => clearInterval(id)
+  }, [loading])
   const billsTextRef = useRef<HTMLTextAreaElement>(null)
 
   // ─── Load history on mount ───
@@ -344,6 +357,60 @@ function BulkCheck() {
     }
   }
 
+  // ─── Manual single-bill retry (for bills still UNKNOWN after auto-retry) ───
+  // Re-checks ONE bill using the credentials still held in memory. If the user
+  // has refreshed (credentials gone), we surface a clear message instead.
+  async function retryBill(billNumber: string) {
+    if (!username || !password) {
+      setError('Please re-enter your CFMS username and password to retry.')
+      return
+    }
+    setRetryingBills((m) => ({ ...m, [billNumber]: true }))
+    try {
+      const res = await fetch(`${API_URL}/api/check-bills`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
+        },
+        body: JSON.stringify({ username, password, billNumbers: [billNumber] }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+      const fresh = data.results && data.results[0]
+      if (fresh) {
+        // Replace just this bill's result in the existing response, preserving
+        // the user's description, and recompute the summary counts.
+        setResponse((prev) => {
+          if (!prev) return prev
+          const updatedResults = prev.results.map((r) =>
+            r.billNumber === billNumber
+              ? { ...fresh, userDescription: r.userDescription }
+              : r
+          )
+          const byVerdict: Record<string, number> = {}
+          for (const r of updatedResults) {
+            const v = r.verdict || 'UNKNOWN'
+            byVerdict[v] = (byVerdict[v] || 0) + 1
+          }
+          return {
+            ...prev,
+            results: updatedResults,
+            summary: { ...prev.summary, byVerdict },
+          }
+        })
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Retry failed')
+    } finally {
+      setRetryingBills((m) => {
+        const next = { ...m }
+        delete next[billNumber]
+        return next
+      })
+    }
+  }
+
   // ─── History actions ───
   function loadBatch(batch: BatchHistoryItem) {
     setBillsText(batch.bills.join('\n'))
@@ -425,6 +492,13 @@ function BulkCheck() {
     if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`
     if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`
     return `${Math.floor(diff / 86_400_000)}d ago`
+  }
+
+  // mm:ss for the live elapsed timer (industry-standard elapsed format).
+  const formatElapsed = (totalSec: number) => {
+    const m = Math.floor(totalSec / 60)
+    const s = totalSec % 60
+    return `${m}:${String(s).padStart(2, '0')}`
   }
 
   const Backdrop = () => (
@@ -631,13 +705,31 @@ function BulkCheck() {
                       transition={{ duration: 0.3 }}
                     />
                   </div>
-                  <p className="text-xs text-indigo-300/60 mt-2">
+
+                  {/* Live elapsed timer + soft estimate */}
+                  <div className="mt-3 flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <FaSpinner className="w-3.5 h-3.5 text-purple-300 animate-spin" />
+                      <span className="text-sm text-indigo-100 font-medium tabular-nums">
+                        {formatElapsed(elapsed)}
+                      </span>
+                      <span className="text-xs text-indigo-300/50">elapsed</span>
+                    </div>
                     {(() => {
                       const n = parseBills(billsText).length
-                      // ~10s per bill (measured at concurrency=3 on the current instance).
                       const est = Math.max(10, n * 10)
-                      return <>Authenticating and reading {n} bills… (~{est}s)</>
+                      return (
+                        <span className="text-xs text-indigo-300/50">
+                          estimated ~{est}s for {n} {n === 1 ? 'bill' : 'bills'}
+                        </span>
+                      )
                     })()}
+                  </div>
+
+                  {/* Honest note about variability */}
+                  <p className="text-[11px] text-indigo-300/45 mt-2 leading-snug">
+                    Actual time depends on the CFMS portal&rsquo;s response speed, which varies.
+                    Please keep this tab open while we fetch your results.
                   </p>
                 </div>
               )}
@@ -703,10 +795,30 @@ function BulkCheck() {
                                   </div>
                                 )}
                               </div>
-                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border ${VERDICT_PILL[r.verdict] || VERDICT_PILL.UNKNOWN}`}>
-                                {VERDICT_ICON[r.verdict]}
-                                {VERDICT_LABEL[r.verdict] || r.verdict}
-                              </span>
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border ${VERDICT_PILL[r.verdict] || VERDICT_PILL.UNKNOWN}`}>
+                                  {VERDICT_ICON[r.verdict]}
+                                  {VERDICT_LABEL[r.verdict] || r.verdict}
+                                </span>
+                                {r.verdict === 'UNKNOWN' && (
+                                  <button
+                                    onClick={() => retryBill(r.billNumber)}
+                                    disabled={!!retryingBills[r.billNumber]}
+                                    className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-indigo-400/40 bg-indigo-500/15 text-indigo-100 hover:bg-indigo-500/25 transition disabled:opacity-60 disabled:cursor-wait"
+                                    title="Check this bill again"
+                                  >
+                                    {retryingBills[r.billNumber] ? (
+                                      <>
+                                        <FaSpinner className="w-3 h-3 animate-spin" /> Retrying…
+                                      </>
+                                    ) : (
+                                      <>
+                                        <FaHistory className="w-3 h-3" /> Retry
+                                      </>
+                                    )}
+                                  </button>
+                                )}
+                              </div>
                             </div>
 
                             {/* ── Problem-note warning (auditor flagged a return / objection) ── */}
