@@ -141,6 +141,7 @@ function BulkCheck() {
   const [response, setResponse] = useState<ApiResponse | null>(null)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [retryingBills, setRetryingBills] = useState<Record<string, boolean>>({})
+  const [exportingPdf, setExportingPdf] = useState(false)
 
   // ─── History state ───
   const [history, setHistory] = useState<BatchHistoryItem[]>([])
@@ -485,6 +486,163 @@ function BulkCheck() {
     URL.revokeObjectURL(url)
   }
 
+  // ─── Export PDF ───
+  // One readable block per bill: header (bill# + verdict), a label/value grid of
+  // all fields, and a highlighted callout for any flagged "may be returned" note.
+  // jsPDF is loaded on demand so it stays out of the main bundle.
+  async function exportPDF() {
+    if (!response) return
+    setExportingPdf(true)
+    try {
+      const { jsPDF } = await import('jspdf')
+      const doc = new jsPDF({ unit: 'pt', format: 'a4' })
+
+      const PAGE_W = doc.internal.pageSize.getWidth()
+      const PAGE_H = doc.internal.pageSize.getHeight()
+      const M = 40 // margin
+      const CONTENT_W = PAGE_W - M * 2
+      let y = M
+
+      const ensureSpace = (needed: number) => {
+        if (y + needed > PAGE_H - M) {
+          doc.addPage()
+          y = M
+        }
+      }
+
+      // ── Title ──
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(16)
+      doc.setTextColor(40, 40, 60)
+      doc.text('CFMS Bulk Bill Status Report', M, y)
+      y += 20
+
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
+      doc.setTextColor(110, 110, 120)
+      const stamp = `Generated: ${new Date().toLocaleString()}`
+      doc.text(stamp, M, y)
+      y += 12
+      doc.text(`Total bills: ${response.results.length}`, M, y)
+      y += 18
+
+      // ── Summary line (counts by verdict) ──
+      const summaryParts = Object.entries(response.summary.byVerdict).map(
+        ([v, n]) => `${n} ${VERDICT_LABEL[v] || v}`
+      )
+      if (summaryParts.length) {
+        doc.setDrawColor(225, 225, 235)
+        doc.setFillColor(245, 245, 250)
+        const sumText = summaryParts.join('    •    ')
+        const sumLines = doc.splitTextToSize(sumText, CONTENT_W - 16)
+        const boxH = sumLines.length * 12 + 12
+        ensureSpace(boxH)
+        doc.roundedRect(M, y, CONTENT_W, boxH, 4, 4, 'FD')
+        doc.setTextColor(70, 70, 90)
+        doc.setFontSize(9)
+        doc.text(sumLines, M + 8, y + 14)
+        y += boxH + 16
+      }
+
+      // ── Per-bill blocks ──
+      const fieldRow = (label: string, value: string) => {
+        const labelW = 110
+        const valLines = doc.splitTextToSize(value || '—', CONTENT_W - labelW - 16)
+        const rowH = Math.max(14, valLines.length * 12)
+        ensureSpace(rowH)
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(8.5)
+        doc.setTextColor(120, 120, 130)
+        doc.text(label.toUpperCase(), M + 8, y + 10)
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(9.5)
+        doc.setTextColor(35, 35, 45)
+        doc.text(valLines, M + 8 + labelW, y + 10)
+        y += rowH
+      }
+
+      response.results.forEach((r, idx) => {
+        const prob = r.problemNotes && r.problemNotes.length > 0 ? r.problemNotes[0] : null
+        const flagged = r.verdict === 'NOTE_FLAGGED_RETURN' || !!prob
+
+        // Block header height estimate (so we don't split a header from its body)
+        ensureSpace(60)
+
+        // Header bar
+        doc.setFillColor(flagged ? 253 : 244, flagged ? 242 : 244, flagged ? 245 : 250)
+        doc.setDrawColor(flagged ? 244 : 220, flagged ? 200 : 220, flagged ? 210 : 230)
+        doc.roundedRect(M, y, CONTENT_W, 26, 4, 4, 'FD')
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(11)
+        doc.setTextColor(30, 30, 45)
+        doc.text(`${idx + 1}.  ${r.billNumber}`, M + 8, y + 17)
+        // Verdict on the right
+        const verdictText = VERDICT_LABEL[r.verdict] || r.verdict
+        doc.setFontSize(9)
+        doc.setTextColor(flagged ? 180 : 90, flagged ? 40 : 90, flagged ? 60 : 110)
+        const vW = doc.getTextWidth(verdictText)
+        doc.text(verdictText, M + CONTENT_W - vW - 8, y + 17)
+        y += 32
+
+        // Fields
+        if (r.userDescription) fieldRow('Description', r.userDescription)
+        fieldRow('Status', r.billStatus || '—')
+        fieldRow('Net Amount', r.netAmount ? `Rs. ${r.netAmount}` : '—')
+        fieldRow('Beneficiary', r.beneficiaryName || '—')
+        fieldRow('Pending At', r.pendingAt ? `${r.pendingAt}${r.pendingAction ? ' · ' + r.pendingAction : ''}` : '—')
+        fieldRow('Payment', r.paymentStatus || '—')
+
+        // Flagged note callout
+        if (prob) {
+          const noteText = `"${prob.remark}"`
+          const byText = `— ${prob.author}${prob.date ? ' · ' + prob.date : ''}`
+          const noteLines = doc.splitTextToSize(noteText, CONTENT_W - 20)
+          const calloutH = 16 + noteLines.length * 11 + 14
+          ensureSpace(calloutH + 6)
+          doc.setFillColor(253, 240, 243)
+          doc.setDrawColor(240, 180, 195)
+          doc.roundedRect(M + 8, y, CONTENT_W - 16, calloutH, 3, 3, 'FD')
+          doc.setFont('helvetica', 'bold')
+          doc.setFontSize(8.5)
+          doc.setTextColor(190, 40, 70)
+          doc.text(`[!] ${prob.problemLabel || 'Flagged'}`, M + 16, y + 13)
+          doc.setFont('helvetica', 'italic')
+          doc.setFontSize(9)
+          doc.setTextColor(120, 40, 55)
+          doc.text(noteLines, M + 16, y + 26)
+          doc.setFont('helvetica', 'normal')
+          doc.setFontSize(8)
+          doc.setTextColor(150, 90, 100)
+          doc.text(byText, M + 16, y + 26 + noteLines.length * 11 + 4)
+          y += calloutH + 6
+        }
+
+        // Divider
+        y += 6
+        doc.setDrawColor(230, 230, 238)
+        doc.line(M, y, M + CONTENT_W, y)
+        y += 12
+      })
+
+      // ── Footer page numbers ──
+      const pageCount = doc.getNumberOfPages()
+      for (let p = 1; p <= pageCount; p++) {
+        doc.setPage(p)
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(8)
+        doc.setTextColor(150, 150, 160)
+        doc.text(`Page ${p} of ${pageCount}`, PAGE_W - M - 50, PAGE_H - 20)
+        doc.text('cfmsbillsstatus.online', M, PAGE_H - 20)
+      }
+
+      doc.save(`cfms-bills-${new Date().toISOString().slice(0, 10)}.pdf`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not generate PDF')
+    } finally {
+      setExportingPdf(false)
+    }
+  }
+
   // ─── Helpers ───
   const formatRelative = (ts: number) => {
     const diff = Date.now() - ts
@@ -691,6 +849,20 @@ function BulkCheck() {
                     className="px-5 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-indigo-100 border border-white/10 transition flex items-center gap-2"
                   >
                     <FaFileDownload /> CSV
+                  </button>
+                )}
+                {response && (
+                  <button
+                    type="button"
+                    onClick={exportPDF}
+                    disabled={exportingPdf}
+                    className="px-5 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-indigo-100 border border-white/10 transition flex items-center gap-2 disabled:opacity-60 disabled:cursor-wait"
+                  >
+                    {exportingPdf ? (
+                      <><FaSpinner className="animate-spin" /> PDF…</>
+                    ) : (
+                      <><FaFileDownload /> PDF</>
+                    )}
                   </button>
                 )}
               </div>
