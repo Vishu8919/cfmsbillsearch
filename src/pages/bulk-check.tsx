@@ -58,6 +58,7 @@ type BillResult = {
   latestNote?: BillNote | null
   problemNotes?: BillNote[]
   hasNoteWarning?: boolean
+  incomplete?: boolean  // core fields (name/net/status) didn't load — offer retry
 }
 
 type ApiResponse = {
@@ -972,23 +973,30 @@ function BulkCheck() {
                                   {VERDICT_ICON[r.verdict]}
                                   {VERDICT_LABEL[r.verdict] || r.verdict}
                                 </span>
-                                {r.verdict === 'UNKNOWN' && (
-                                  <button
-                                    onClick={() => retryBill(r.billNumber)}
-                                    disabled={!!retryingBills[r.billNumber]}
-                                    className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-indigo-400/40 bg-indigo-500/15 text-indigo-100 hover:bg-indigo-500/25 transition disabled:opacity-60 disabled:cursor-wait"
-                                    title="Check this bill again"
-                                  >
-                                    {retryingBills[r.billNumber] ? (
-                                      <>
-                                        <FaSpinner className="w-3 h-3 animate-spin" /> Retrying…
-                                      </>
-                                    ) : (
-                                      <>
-                                        <FaHistory className="w-3 h-3" /> Retry
-                                      </>
+                                {(r.verdict === 'UNKNOWN' || r.incomplete) && (
+                                  <div className="flex items-center gap-1.5">
+                                    {r.incomplete && r.verdict !== 'UNKNOWN' && (
+                                      <span className="text-[11px] text-amber-300/70 hidden sm:inline">
+                                        Some details couldn&rsquo;t load
+                                      </span>
                                     )}
-                                  </button>
+                                    <button
+                                      onClick={() => retryBill(r.billNumber)}
+                                      disabled={!!retryingBills[r.billNumber]}
+                                      className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-indigo-400/40 bg-indigo-500/15 text-indigo-100 hover:bg-indigo-500/25 transition disabled:opacity-60 disabled:cursor-wait"
+                                      title="Check this bill again to load missing details"
+                                    >
+                                      {retryingBills[r.billNumber] ? (
+                                        <>
+                                          <FaSpinner className="w-3 h-3 animate-spin" /> Retrying…
+                                        </>
+                                      ) : (
+                                        <>
+                                          <FaHistory className="w-3 h-3" /> Retry
+                                        </>
+                                      )}
+                                    </button>
+                                  </div>
                                 )}
                               </div>
                             </div>
