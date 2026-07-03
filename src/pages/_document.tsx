@@ -17,14 +17,14 @@ export default function Document() {
         <meta name="author" content="Vishnu Thulasi" />
         <meta name="robots" content="index, follow" />
         <meta name="googlebot" content="index, follow" />
-        <link rel="canonical" href="https://www.cfmsbillsstatus.online/" />
+        <link rel="canonical" href="https://cfmsbillsstatus.online/" />
         <link rel="manifest" href="/site.webmanifest" />
         <link rel="icon" href="/favicon.ico" />
         <meta name="theme-color" content="#4f46e5" />
 
         {/* ── Open Graph (for social sharing & richer Google previews) ── */}
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://www.cfmsbillsstatus.online/" />
+        <meta property="og:url" content="https://cfmsbillsstatus.online/" />
         <meta
           property="og:title"
           content="AP CFMS Bill Status Checker – Andhra Pradesh Treasury Bills"
@@ -61,14 +61,14 @@ export default function Document() {
               "@context": "https://schema.org",
               "@type": "WebSite",
               name: "CFMS Bills Status",
-              url: "https://www.cfmsbillsstatus.online/",
+              url: "https://cfmsbillsstatus.online/",
               description:
                 "Check Andhra Pradesh CFMS bill status and treasury payment status online.",
               inLanguage: "en-IN",
               potentialAction: {
                 "@type": "SearchAction",
                 target:
-                  "https://www.cfmsbillsstatus.online/?q={search_term_string}",
+                  "https://cfmsbillsstatus.online/?q={search_term_string}",
                 "query-input": "required name=search_term_string",
               },
             }),
@@ -83,7 +83,7 @@ export default function Document() {
               "@context": "https://schema.org",
               "@type": "WebApplication",
               name: "AP CFMS Bill Status Checker",
-              url: "https://www.cfmsbillsstatus.online/",
+              url: "https://cfmsbillsstatus.online/",
               applicationCategory: "UtilitiesApplication",
               operatingSystem: "Any",
               description:
