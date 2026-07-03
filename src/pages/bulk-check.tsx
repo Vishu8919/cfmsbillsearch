@@ -254,7 +254,7 @@ function BulkCheck() {
     if (!loading) return
     setProgress(5)
     const bills = parseBills(billsText)
-    const totalMs = Math.max(bills.length * 1000, 5000)
+    const totalMs = Math.max(2000 + bills.length * 1000, 3000)
     const id = setInterval(() => setProgress((p) => Math.min(p + 2, 92)), totalMs / 45)
     return () => clearInterval(id)
   }, [loading, billsText])
@@ -890,7 +890,9 @@ function BulkCheck() {
                     </div>
                     {(() => {
                       const n = parseBills(billsText).length
-                      const est = Math.max(10, n * 10)
+                      // Direct-HTTP path: roughly a second per bill plus a small
+                      // session handshake. (Old browser path was ~10s/bill.)
+                      const est = Math.max(3, Math.ceil(2 + n * 1))
                       return (
                         <span className="text-xs text-indigo-300/50">
                           estimated ~{est}s for {n} {n === 1 ? 'bill' : 'bills'}
@@ -901,7 +903,7 @@ function BulkCheck() {
 
                   {/* Honest note about variability */}
                   <p className="text-[11px] text-indigo-300/45 mt-2 leading-snug">
-                    Actual time depends on the CFMS portal&rsquo;s response speed, which varies.
+                    Actual time depends on the CFMS portal&rsquo;s response speed, which can vary.
                     Please keep this tab open while we fetch your results.
                   </p>
                 </div>
