@@ -224,7 +224,7 @@ function Home() {
           name="description"
           content="Check Andhra Pradesh CFMS bill status online instantly. Search AP treasury payment status, pending bills, and payment releases using bill number. Fast and free CFMS bill tracker."
         />
-        <link rel="canonical" href="https://www.cfmsbillsstatus.online/" />
+        <link rel="canonical" href="https://cfmsbillsstatus.online/" />
       </Head>
 
       <main
