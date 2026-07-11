@@ -27,6 +27,8 @@ import {
   FaChevronDown,
   FaChevronUp,
   FaExclamationTriangle,
+  FaInfoCircle,
+  FaRedo,
 } from 'react-icons/fa'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:10000'
@@ -94,6 +96,7 @@ const VERDICT_LABEL: Record<string, string> = {
   ERROR: 'Error',
   AUTH_FAILED: 'Auth Failed',
   PAGE_LOAD_FAILED: 'Page Failed',
+  NOT_FOUND: 'Bill Not Found',
   UNKNOWN: 'Could not read',
 }
 
@@ -112,6 +115,7 @@ const VERDICT_PILL: Record<string, string> = {
   ERROR: 'bg-red-500/20 text-red-200 border-red-400/30',
   AUTH_FAILED: 'bg-red-500/20 text-red-200 border-red-400/30',
   PAGE_LOAD_FAILED: 'bg-red-500/20 text-red-200 border-red-400/30',
+  NOT_FOUND: 'bg-slate-500/20 text-slate-300 border-slate-400/30',
   UNKNOWN: 'bg-white/10 text-indigo-200 border-white/10',
 }
 
@@ -120,6 +124,23 @@ const VERDICT_ICON: Record<string, React.ReactNode> = {
   APPROVED_PAYMENT_PENDING: <FaClock className="w-3 h-3" />,
   APPROVED: <FaCheckCircle className="w-3 h-3" />,
   NOTE_FLAGGED_RETURN: <FaExclamationTriangle className="w-3 h-3" />,
+}
+
+// Human-readable reason shown under a bill's row, per verdict. Gives users a
+// clear next step instead of a bare code.
+const VERDICT_REASON: Record<string, string> = {
+  NOT_FOUND: "This bill number wasn't found in CFMS. Please double-check the number and year.",
+  UNKNOWN: 'CFMS didn’t return this bill’s data (the portal was slow or busy). Tap Retry to try again.',
+  ERROR: 'Something went wrong while fetching this bill. Tap Retry to try again.',
+  AUTH_FAILED: 'Your CFMS login was rejected. Please check your username and password.',
+  PAGE_LOAD_FAILED: 'The CFMS page didn’t load for this bill. Tap Retry to try again.',
+}
+
+// Which verdicts are worth retrying (transient). NOT_FOUND and AUTH_FAILED are
+// NOT retryable — the bill doesn't exist, or the credentials are wrong.
+const RETRYABLE_VERDICTS = new Set(['UNKNOWN', 'ERROR', 'PAGE_LOAD_FAILED'])
+function isRetryable(r: { verdict: string; incomplete?: boolean }): boolean {
+  return RETRYABLE_VERDICTS.has(r.verdict) || (!!r.incomplete && r.verdict !== 'NOT_FOUND' && r.verdict !== 'AUTH_FAILED')
 }
 
 const STORAGE_KEY = 'bulkBillHistory'
@@ -254,7 +275,7 @@ function BulkCheck() {
     if (!loading) return
     setProgress(5)
     const bills = parseBills(billsText)
-    const totalMs = Math.max(2000 + bills.length * 1000, 3000)
+    const totalMs = Math.max(bills.length * 1000, 5000)
     const id = setInterval(() => setProgress((p) => Math.min(p + 2, 92)), totalMs / 45)
     return () => clearInterval(id)
   }, [loading, billsText])
@@ -410,6 +431,54 @@ function BulkCheck() {
         delete next[billNumber]
         return next
       })
+    }
+  }
+
+  // Retry ALL failed/retryable bills at once (the action-bar "Retry Failed"
+  // button). Re-runs just those bills through the normal endpoint and merges
+  // the fresh results back in, preserving each bill's description.
+  const [retryingAll, setRetryingAll] = useState(false)
+  async function retryAllFailed() {
+    if (!response) return
+    if (!username || !password) {
+      setError('Please re-enter your CFMS username and password to retry.')
+      return
+    }
+    const failed = response.results.filter(isRetryable).map((r) => r.billNumber)
+    if (failed.length === 0) return
+    setRetryingAll(true)
+    setError(null)
+    try {
+      const res = await fetch(`${API_URL}/api/check-bills`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
+        },
+        body: JSON.stringify({ username, password, billNumbers: failed }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+      const freshByBill: Record<string, any> = {}
+      for (const fr of (data.results || [])) freshByBill[fr.billNumber] = fr
+      setResponse((prev) => {
+        if (!prev) return prev
+        const updatedResults = prev.results.map((r) =>
+          freshByBill[r.billNumber]
+            ? { ...freshByBill[r.billNumber], userDescription: r.userDescription }
+            : r
+        )
+        const byVerdict: Record<string, number> = {}
+        for (const r of updatedResults) {
+          const v = r.verdict || 'UNKNOWN'
+          byVerdict[v] = (byVerdict[v] || 0) + 1
+        }
+        return { ...prev, results: updatedResults, summary: { ...prev.summary, byVerdict } }
+      })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Retry failed')
+    } finally {
+      setRetryingAll(false)
     }
   }
 
@@ -866,6 +935,26 @@ function BulkCheck() {
                     )}
                   </button>
                 )}
+                {(() => {
+                  if (!response) return null
+                  const failedCount = response.results.filter(isRetryable).length
+                  if (failedCount === 0) return null
+                  return (
+                    <button
+                      type="button"
+                      onClick={retryAllFailed}
+                      disabled={retryingAll || loading}
+                      className="px-5 py-3 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-100 border border-amber-400/40 transition flex items-center gap-2 disabled:opacity-60 disabled:cursor-wait"
+                      title="Re-check the bills that couldn't be fetched"
+                    >
+                      {retryingAll ? (
+                        <><FaSpinner className="animate-spin" /> Retrying {failedCount}…</>
+                      ) : (
+                        <><FaRedo /> Retry {failedCount} Failed</>
+                      )}
+                    </button>
+                  )
+                })()}
               </div>
 
               {/* Progress */}
@@ -890,9 +979,9 @@ function BulkCheck() {
                     </div>
                     {(() => {
                       const n = parseBills(billsText).length
-                      // Direct-HTTP path: roughly a second per bill plus a small
-                      // session handshake. (Old browser path was ~10s/bill.)
-                      const est = Math.max(3, Math.ceil(2 + n * 1))
+                      // Direct-HTTP path: ~1s/bill + small base. Extra headroom
+                      // because slow CFMS responses may trigger auto-retries.
+                      const est = Math.max(3, Math.ceil(3 + n * 1.5))
                       return (
                         <span className="text-xs text-indigo-300/50">
                           estimated ~{est}s for {n} {n === 1 ? 'bill' : 'bills'}
@@ -901,9 +990,27 @@ function BulkCheck() {
                     })()}
                   </div>
 
+                  {/* Phased status message — reflects that slow batches trigger
+                      backend retries, so users understand the wait instead of
+                      thinking it's frozen. Driven by elapsed time. */}
+                  {(() => {
+                    let msg = 'Checking your bills on the CFMS portal…'
+                    if (elapsed >= 40) {
+                      msg = 'CFMS is slow to respond — automatically retrying to fetch complete data. Please wait…'
+                    } else if (elapsed >= 20) {
+                      msg = 'CFMS is responding slowly. Still working on your bills…'
+                    }
+                    return (
+                      <p className="text-[11px] text-purple-200/70 mt-2 leading-snug">
+                        {msg}
+                      </p>
+                    )
+                  })()}
+
                   {/* Honest note about variability */}
                   <p className="text-[11px] text-indigo-300/45 mt-2 leading-snug">
                     Actual time depends on the CFMS portal&rsquo;s response speed, which can vary.
+                    Some bills may be retried automatically to get complete results.
                     Please keep this tab open while we fetch your results.
                   </p>
                 </div>
@@ -971,37 +1078,53 @@ function BulkCheck() {
                                 )}
                               </div>
                               <div className="flex items-center gap-2 flex-shrink-0">
-                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border ${VERDICT_PILL[r.verdict] || VERDICT_PILL.UNKNOWN}`}>
+                                <span
+                                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border ${VERDICT_PILL[r.verdict] || VERDICT_PILL.UNKNOWN}`}
+                                  title={VERDICT_REASON[r.verdict] || undefined}
+                                >
                                   {VERDICT_ICON[r.verdict]}
                                   {VERDICT_LABEL[r.verdict] || r.verdict}
                                 </span>
-                                {(r.verdict === 'UNKNOWN' || r.incomplete) && (
-                                  <div className="flex items-center gap-1.5">
-                                    {r.incomplete && r.verdict !== 'UNKNOWN' && (
-                                      <span className="text-[11px] text-amber-300/70 hidden sm:inline">
-                                        Some details couldn&rsquo;t load
-                                      </span>
+                                {VERDICT_REASON[r.verdict] && (
+                                  <FaInfoCircle
+                                    className="w-3.5 h-3.5 text-indigo-300/60 cursor-help flex-shrink-0"
+                                    title={VERDICT_REASON[r.verdict]}
+                                  />
+                                )}
+                                {isRetryable(r) && (
+                                  <button
+                                    onClick={() => retryBill(r.billNumber)}
+                                    disabled={!!retryingBills[r.billNumber] || retryingAll}
+                                    className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-indigo-400/40 bg-indigo-500/15 text-indigo-100 hover:bg-indigo-500/25 transition disabled:opacity-60 disabled:cursor-wait"
+                                    title="Check this bill again"
+                                  >
+                                    {retryingBills[r.billNumber] ? (
+                                      <>
+                                        <FaSpinner className="w-3 h-3 animate-spin" /> Retrying…
+                                      </>
+                                    ) : (
+                                      <>
+                                        <FaHistory className="w-3 h-3" /> Retry
+                                      </>
                                     )}
-                                    <button
-                                      onClick={() => retryBill(r.billNumber)}
-                                      disabled={!!retryingBills[r.billNumber]}
-                                      className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-indigo-400/40 bg-indigo-500/15 text-indigo-100 hover:bg-indigo-500/25 transition disabled:opacity-60 disabled:cursor-wait"
-                                      title="Check this bill again to load missing details"
-                                    >
-                                      {retryingBills[r.billNumber] ? (
-                                        <>
-                                          <FaSpinner className="w-3 h-3 animate-spin" /> Retrying…
-                                        </>
-                                      ) : (
-                                        <>
-                                          <FaHistory className="w-3 h-3" /> Retry
-                                        </>
-                                      )}
-                                    </button>
-                                  </div>
+                                  </button>
                                 )}
                               </div>
                             </div>
+
+                            {/* ── Failure reason line (clear message instead of a bare code) ── */}
+                            {VERDICT_REASON[r.verdict] && (
+                              <div className={`mt-3 rounded-lg border p-3 text-xs leading-snug flex items-start gap-2 ${
+                                r.verdict === 'NOT_FOUND'
+                                  ? 'border-slate-400/30 bg-slate-500/10 text-slate-200'
+                                  : r.verdict === 'AUTH_FAILED'
+                                  ? 'border-red-400/30 bg-red-500/10 text-red-200'
+                                  : 'border-amber-400/30 bg-amber-500/10 text-amber-100'
+                              }`}>
+                                <FaInfoCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 opacity-80" />
+                                <span>{VERDICT_REASON[r.verdict]}</span>
+                              </div>
+                            )}
 
                             {/* ── Problem-note warning (auditor flagged a return / objection) ── */}
                             {r.hasNoteWarning && r.problemNotes && r.problemNotes.length > 0 && (
