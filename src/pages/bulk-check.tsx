@@ -164,6 +164,7 @@ function BulkCheck() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [retryingBills, setRetryingBills] = useState<Record<string, boolean>>({})
   const [exportingPdf, setExportingPdf] = useState(false)
+  const [exportingPdfNotes, setExportingPdfNotes] = useState(false)
 
   // ─── History state ───
   const [history, setHistory] = useState<BatchHistoryItem[]>([])
@@ -560,9 +561,11 @@ function BulkCheck() {
   // One readable block per bill: header (bill# + verdict), a label/value grid of
   // all fields, and a highlighted callout for any flagged "may be returned" note.
   // jsPDF is loaded on demand so it stays out of the main bundle.
-  async function exportPDF() {
+  // Shared generator for both PDF buttons. includeNotes=false -> the original
+  // status report; includeNotes=true -> the same report plus every note from
+  // every person on each bill (full history, continuous flow).
+  async function generatePDF(includeNotes: boolean) {
     if (!response) return
-    setExportingPdf(true)
     try {
       const { jsPDF } = await import('jspdf')
       const doc = new jsPDF({ unit: 'pt', format: 'a4' })
@@ -584,7 +587,7 @@ function BulkCheck() {
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(16)
       doc.setTextColor(40, 40, 60)
-      doc.text('CFMS Bulk Bill Status Report', M, y)
+      doc.text(includeNotes ? 'CFMS Bulk Bill Status Report — With Full Notes' : 'CFMS Bulk Bill Status Report', M, y)
       y += 20
 
       doc.setFont('helvetica', 'normal')
@@ -687,6 +690,78 @@ function BulkCheck() {
           y += calloutH + 6
         }
 
+        // ── Full notes history (only for the "PDF with Notes" export) ──
+        // Shows every note from every person on the bill, oldest -> newest, so
+        // the reader sees the complete comment/approval trail. Continuous flow;
+        // a note that would overflow the page wraps onto the next page.
+        if (includeNotes) {
+          const allNotes = Array.isArray(r.notes) ? r.notes.slice() : []
+          // notes arrive newest-first (sorted by seq desc); show oldest-first
+          // so the history reads top-to-bottom in chronological order.
+          allNotes.sort((a: any, b: any) => (a?.seq ?? 0) - (b?.seq ?? 0))
+
+          // Section heading
+          ensureSpace(20)
+          doc.setFont('helvetica', 'bold')
+          doc.setFontSize(8.5)
+          doc.setTextColor(120, 120, 130)
+          doc.text(`NOTES HISTORY (${allNotes.length})`, M + 8, y + 10)
+          y += 16
+
+          if (allNotes.length === 0) {
+            ensureSpace(14)
+            doc.setFont('helvetica', 'italic')
+            doc.setFontSize(9)
+            doc.setTextColor(150, 150, 160)
+            doc.text('No notes recorded for this bill.', M + 12, y + 9)
+            y += 16
+          } else {
+            allNotes.forEach((note: any, nIdx: number) => {
+              const author = (note?.author || 'Unknown').toString()
+              const date = (note?.date || '').toString()
+              const remark = (note?.remark || '').toString()
+              const isProblem = !!note?.problemLabel
+
+              const header = `${nIdx + 1}. ${author}${date ? '  ·  ' + date : ''}`
+              const headerLines = doc.splitTextToSize(header, CONTENT_W - 24)
+              const remarkLines = doc.splitTextToSize(remark || '—', CONTENT_W - 24)
+              const blockH = headerLines.length * 11 + remarkLines.length * 11 + 12
+
+              ensureSpace(blockH + 4)
+
+              // subtle card behind each note; pink tint if this note is a problem
+              doc.setFillColor(isProblem ? 253 : 248, isProblem ? 242 : 248, isProblem ? 245 : 252)
+              doc.setDrawColor(isProblem ? 244 : 228, isProblem ? 200 : 228, isProblem ? 210 : 236)
+              doc.roundedRect(M + 8, y, CONTENT_W - 16, blockH, 3, 3, 'FD')
+
+              // author · date
+              doc.setFont('helvetica', 'bold')
+              doc.setFontSize(8.5)
+              doc.setTextColor(isProblem ? 175 : 70, isProblem ? 45 : 70, isProblem ? 65 : 90)
+              doc.text(headerLines, M + 16, y + 12)
+
+              // problem label (if any)
+              let ry = y + 12 + headerLines.length * 11
+              if (isProblem) {
+                doc.setFont('helvetica', 'bold')
+                doc.setFontSize(8)
+                doc.setTextColor(190, 40, 70)
+                doc.text(`[!] ${note.problemLabel}`, M + 16, ry)
+                ry += 10
+              }
+
+              // remark text
+              doc.setFont('helvetica', 'normal')
+              doc.setFontSize(9)
+              doc.setTextColor(45, 45, 55)
+              doc.text(remarkLines, M + 16, ry)
+
+              y += blockH + 4
+            })
+          }
+          y += 2
+        }
+
         // Divider
         y += 6
         doc.setDrawColor(230, 230, 238)
@@ -705,12 +780,23 @@ function BulkCheck() {
         doc.text('cfmsbillsstatus.online', M, PAGE_H - 20)
       }
 
-      doc.save(`cfms-bills-${new Date().toISOString().slice(0, 10)}.pdf`)
+      const suffix = includeNotes ? '-with-notes' : ''
+      doc.save(`cfms-bills-${new Date().toISOString().slice(0, 10)}${suffix}.pdf`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not generate PDF')
-    } finally {
-      setExportingPdf(false)
     }
+  }
+
+  // The two buttons: plain report, and report + full notes history.
+  async function exportPDF() {
+    if (!response) return
+    setExportingPdf(true)
+    try { await generatePDF(false) } finally { setExportingPdf(false) }
+  }
+  async function exportPDFWithNotes() {
+    if (!response) return
+    setExportingPdfNotes(true)
+    try { await generatePDF(true) } finally { setExportingPdfNotes(false) }
   }
 
   // ─── Helpers ───
@@ -932,6 +1018,21 @@ function BulkCheck() {
                       <><FaSpinner className="animate-spin" /> PDF…</>
                     ) : (
                       <><FaFileDownload /> PDF</>
+                    )}
+                  </button>
+                )}
+                {response && (
+                  <button
+                    type="button"
+                    onClick={exportPDFWithNotes}
+                    disabled={exportingPdfNotes}
+                    className="px-5 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-indigo-100 border border-white/10 transition flex items-center gap-2 disabled:opacity-60 disabled:cursor-wait"
+                    title="Download a PDF that includes every note from every person on each bill (full history)"
+                  >
+                    {exportingPdfNotes ? (
+                      <><FaSpinner className="animate-spin" /> PDF + Notes…</>
+                    ) : (
+                      <><FaFileDownload /> PDF with Notes</>
                     )}
                   </button>
                 )}
