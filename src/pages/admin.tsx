@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FaUsers, FaCrown, FaUserShield, FaUserSlash, FaSearch,
-  FaSpinner, FaTrashAlt, FaCheck, FaSync,
+  FaSpinner, FaTrashAlt, FaCheck, FaSync, FaChartBar, FaBolt,
+  FaExclamationTriangle, FaStopwatch,
 } from 'react-icons/fa';
 import RequireAuth from '../components/RequireAuth';
 import AccountBar from '../components/AccountBar';
@@ -13,7 +14,8 @@ import { useAuth } from '../context/AuthContext';
 import {
   AuthUser, Role,
   adminFetchStats, adminFetchUsers, adminSetRole, adminSetActive, adminDeleteUser,
-  AdminStats,
+  adminFetchUsage,
+  AdminStats, AdminUsage,
 } from '../lib/auth';
 
 const ROLES: Role[] = ['customer', 'subscriber', 'admin'];
@@ -35,6 +37,177 @@ function StatCard({ icon, label, value, tint }: {
         <div className="text-xs text-indigo-200/70 uppercase tracking-wider">{label}</div>
       </div>
     </div>
+  );
+}
+
+// ── Service usage panel (backend v4.0) ──
+// Reads /api/admin/usage. This is the operational view that did not exist
+// before: how much load the service is actually carrying, how much of it the
+// cache absorbs, how often checks fail, and how long people wait in the queue.
+function UsagePanel() {
+  const [usage, setUsage] = useState<AdminUsage | null>(null);
+  const [days, setDays] = useState(7);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+  const [open, setOpen] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setErr(null);
+    adminFetchUsage(days)
+      .then((u) => { if (!cancelled) setUsage(u); })
+      .catch((e) => { if (!cancelled) setErr(e instanceof Error ? e.message : 'Could not load usage'); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [days]);
+
+  const t = usage?.totals;
+  // Scale the bar chart to the busiest day so a quiet week still reads clearly.
+  const peak = Math.max(1, ...(usage?.daily || []).map((d) => d.bills));
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="mb-6 bg-gradient-to-br from-indigo-900/80 to-purple-900/80 backdrop-blur-sm border border-white/15 rounded-2xl overflow-hidden"
+    >
+      <div className="flex items-center justify-between gap-3 p-4">
+        <button
+          onClick={() => setOpen((o) => !o)}
+          className="flex items-center gap-2 text-sm font-bold text-indigo-100"
+        >
+          <FaChartBar className="w-4 h-4 text-indigo-300" />
+          Service Usage
+          <span className="text-[10px] font-normal text-indigo-300/60">
+            {open ? '(hide)' : '(show)'}
+          </span>
+        </button>
+        <div className="flex gap-1">
+          {[1, 7, 30].map((d) => (
+            <button
+              key={d}
+              onClick={() => setDays(d)}
+              className={`px-2.5 py-1 rounded-lg text-xs border transition ${
+                days === d
+                  ? 'bg-indigo-500/30 text-white border-indigo-400/40'
+                  : 'bg-white/5 text-indigo-200/70 border-white/10 hover:bg-white/10'
+              }`}
+            >
+              {d}d
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {open && (
+        <div className="px-4 pb-4">
+          {loading && (
+            <div className="flex items-center gap-2 text-xs text-indigo-200/70 py-6 justify-center">
+              <FaSpinner className="w-3.5 h-3.5 animate-spin" /> Loading usage…
+            </div>
+          )}
+
+          {err && !loading && (
+            <div className="text-xs text-red-200 bg-red-500/10 border border-red-400/30 rounded-lg p-3">
+              {err}
+            </div>
+          )}
+
+          {usage && !loading && !err && (
+            <>
+              {/* Headline numbers */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+                <div className="bg-black/20 rounded-xl p-3 border border-white/10">
+                  <div className="text-xl font-bold text-white tabular-nums">{t?.bills ?? 0}</div>
+                  <div className="text-[10px] text-indigo-200/60 uppercase tracking-wider">Bills checked</div>
+                </div>
+                <div className="bg-black/20 rounded-xl p-3 border border-white/10">
+                  <div className="text-xl font-bold text-white tabular-nums">{t?.batches ?? 0}</div>
+                  <div className="text-[10px] text-indigo-200/60 uppercase tracking-wider">Batches</div>
+                </div>
+                <div className="bg-black/20 rounded-xl p-3 border border-white/10">
+                  <div className="text-xl font-bold text-sky-200 tabular-nums flex items-center gap-1">
+                    <FaBolt className="w-3 h-3" />
+                    {Math.round((t?.cacheHitRate ?? 0) * 100)}%
+                  </div>
+                  <div className="text-[10px] text-indigo-200/60 uppercase tracking-wider">From cache</div>
+                </div>
+                <div className="bg-black/20 rounded-xl p-3 border border-white/10">
+                  <div className={`text-xl font-bold tabular-nums ${(t?.failures ?? 0) > 0 ? 'text-amber-200' : 'text-white'}`}>
+                    {t?.failures ?? 0}
+                  </div>
+                  <div className="text-[10px] text-indigo-200/60 uppercase tracking-wider">Failed bills</div>
+                </div>
+              </div>
+
+              {/* Latency */}
+              <div className="flex flex-wrap gap-3 mb-4 text-[11px] text-indigo-200/70">
+                <span className="inline-flex items-center gap-1.5">
+                  <FaStopwatch className="w-3 h-3" />
+                  Avg batch {t?.avgElapsedSeconds ?? 0}s
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <FaSpinner className="w-3 h-3" />
+                  Avg queue wait {t?.avgQueueWaitMs ?? 0}ms
+                </span>
+                {!!t?.erroredBatches && (
+                  <span className="inline-flex items-center gap-1.5 text-amber-200">
+                    <FaExclamationTriangle className="w-3 h-3" />
+                    {t.erroredBatches} batch{t.erroredBatches === 1 ? '' : 'es'} errored
+                  </span>
+                )}
+              </div>
+
+              {/* Daily bars */}
+              {usage.daily.length > 0 && (
+                <div className="mb-4">
+                  <div className="text-[10px] text-indigo-200/50 uppercase tracking-wider mb-2">
+                    Bills per day
+                  </div>
+                  <div className="flex items-end gap-1 h-20">
+                    {usage.daily.map((d) => (
+                      <div key={d.date} className="flex-1 flex flex-col items-center gap-1 group">
+                        <div
+                          className="w-full bg-gradient-to-t from-indigo-500/60 to-purple-400/60 rounded-t hover:from-indigo-400 hover:to-purple-300 transition-colors"
+                          style={{ height: `${Math.max(3, (d.bills / peak) * 100)}%` }}
+                          title={`${d.date}: ${d.bills} bills, ${d.batches} batches, ${d.failures} failed`}
+                        />
+                        <div className="text-[8px] text-indigo-300/40 tabular-nums">
+                          {d.date.slice(8)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Heaviest users */}
+              {usage.topUsers.length > 0 && (
+                <div>
+                  <div className="text-[10px] text-indigo-200/50 uppercase tracking-wider mb-2">
+                    Most active users
+                  </div>
+                  <div className="space-y-1">
+                    {usage.topUsers.map((u) => (
+                      <div
+                        key={u.userId}
+                        className="flex items-center justify-between gap-2 text-xs bg-black/20 rounded-lg px-3 py-1.5 border border-white/5"
+                      >
+                        <span className="text-indigo-100 truncate">{u.username}</span>
+                        <span className="text-indigo-300/60 tabular-nums flex-shrink-0">
+                          {u.bills} bills · {u.batches} batches
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </motion.div>
   );
 }
 
@@ -174,6 +347,9 @@ function AdminPanel() {
             <StatCard icon={<FaUserShield className="w-5 h-5 text-purple-200" />} label="Admins" value={stats?.admins ?? 0} tint="bg-purple-500/20" />
             <StatCard icon={<FaUserSlash className="w-5 h-5 text-red-200" />} label="Disabled" value={stats?.disabled ?? 0} tint="bg-red-500/20" />
           </motion.div>
+
+          {/* Service usage (backend v4.0) */}
+          <UsagePanel />
 
           {/* Search + refresh */}
           <div className="flex gap-2 mb-4">

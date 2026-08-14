@@ -29,6 +29,7 @@ import {
   FaExclamationTriangle,
   FaInfoCircle,
   FaRedo,
+  FaBolt,
 } from 'react-icons/fa'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:10000'
@@ -61,6 +62,7 @@ type BillResult = {
   problemNotes?: BillNote[]
   hasNoteWarning?: boolean
   incomplete?: boolean  // core fields (name/net/status) didn't load — offer retry
+  fromCache?: boolean   // v4.0: served from the server's recent-results cache
 }
 
 type ApiResponse = {
@@ -68,6 +70,9 @@ type ApiResponse = {
   checkedAt: string
   elapsedSeconds?: number
   summary: { total: number; byVerdict: Record<string, number> }
+  // ── v4.0 ──
+  cachedCount?: number   // bills answered from recent results, no CFMS trip
+  queueWaitMs?: number   // time this request spent waiting for a free slot
 }
 
 type BatchHistoryItem = {
@@ -138,6 +143,50 @@ const VERDICT_REASON: Record<string, string> = {
 
 // Which verdicts are worth retrying (transient). NOT_FOUND and AUTH_FAILED are
 // NOT retryable — the bill doesn't exist, or the credentials are wrong.
+// ───── Shared call to /api/check-bills (v4.0) ─────
+// All three call sites (initial check, single retry, retry-all) went through
+// near-identical fetch blocks. Centralising them means the new backend
+// behaviours are handled in one place instead of three:
+//
+//   * forceRefresh — the server now caches results for ~10 minutes. Without
+//     this flag a Retry could be handed the very cached result it is retrying
+//     against, which made the button silently useless.
+//   * 429 / 503    — the server no longer hangs when busy; it answers
+//     immediately with a queue depth. Previously this surfaced to the user as
+//     a bare "HTTP 429".
+async function postCheck(body: {
+  username: string
+  password: string
+  billNumbers: string[]
+  forceRefresh?: boolean
+}): Promise<ApiResponse> {
+  const token = getToken()
+  const res = await fetch(`${API_URL}/api/check-bills`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(body),
+  })
+
+  let data: any = null
+  try { data = await res.json() } catch { /* non-JSON error body */ }
+
+  if (!res.ok) {
+    if (res.status === 429 || res.status === 503) {
+      const ahead = typeof data?.queueDepth === 'number' ? data.queueDepth : 0
+      throw new Error(
+        ahead > 0
+          ? `The server is busy — ${ahead} ${ahead === 1 ? 'check is' : 'checks are'} ahead of yours. Please try again in a minute.`
+          : 'The server is busy right now. Please try again in a minute.'
+      )
+    }
+    throw new Error(data?.error || `HTTP ${res.status}`)
+  }
+  return data as ApiResponse
+}
+
 const RETRYABLE_VERDICTS = new Set(['UNKNOWN', 'ERROR', 'PAGE_LOAD_FAILED'])
 function isRetryable(r: { verdict: string; incomplete?: boolean }): boolean {
   return RETRYABLE_VERDICTS.has(r.verdict) || (!!r.incomplete && r.verdict !== 'NOT_FOUND' && r.verdict !== 'AUTH_FAILED')
@@ -320,17 +369,7 @@ function BulkCheck() {
 
     setLoading(true)
     try {
-      const token = getToken()
-      const res = await fetch(`${API_URL}/api/check-bills`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ username, password, billNumbers: bills }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+      const data = await postCheck({ username, password, billNumbers: bills })
       setResponse(data)
       setProgress(100)
 
@@ -391,16 +430,11 @@ function BulkCheck() {
     }
     setRetryingBills((m) => ({ ...m, [billNumber]: true }))
     try {
-      const res = await fetch(`${API_URL}/api/check-bills`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
-        },
-        body: JSON.stringify({ username, password, billNumbers: [billNumber] }),
+      // forceRefresh: bypass AND evict the server cache, so Retry really
+      // re-reads CFMS rather than replaying the result being retried.
+      const data = await postCheck({
+        username, password, billNumbers: [billNumber], forceRefresh: true,
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
       const fresh = data.results && data.results[0]
       if (fresh) {
         // Replace just this bill's result in the existing response, preserving
@@ -439,6 +473,10 @@ function BulkCheck() {
   // button). Re-runs just those bills through the normal endpoint and merges
   // the fresh results back in, preserving each bill's description.
   const [retryingAll, setRetryingAll] = useState(false)
+  // v4.0: how many checks are waiting on the server right now. Polled only
+  // while our own request is in flight, so a slow batch reads as "the server
+  // is busy" rather than as an unexplained spinner.
+  const [serverQueued, setServerQueued] = useState(0)
   async function retryAllFailed() {
     if (!response) return
     if (!username || !password) {
@@ -450,16 +488,9 @@ function BulkCheck() {
     setRetryingAll(true)
     setError(null)
     try {
-      const res = await fetch(`${API_URL}/api/check-bills`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
-        },
-        body: JSON.stringify({ username, password, billNumbers: failed }),
+      const data = await postCheck({
+        username, password, billNumbers: failed, forceRefresh: true,
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
       const freshByBill: Record<string, any> = {}
       for (const fr of (data.results || [])) freshByBill[fr.billNumber] = fr
       setResponse((prev) => {
@@ -482,6 +513,26 @@ function BulkCheck() {
       setRetryingAll(false)
     }
   }
+
+  // Poll the health endpoint while a check is running so the user can see
+  // that a long wait is server load, not a hung page. Stops the moment the
+  // request settles. Failures are ignored — this is decoration, not function.
+  useEffect(() => {
+    const busy = loading || retryingAll
+    if (!busy) { setServerQueued(0); return }
+    let cancelled = false
+    const poll = async () => {
+      try {
+        const res = await fetch(`${API_URL}/`)
+        if (!res.ok) return
+        const data = await res.json()
+        if (!cancelled) setServerQueued(data?.queue?.queued ?? 0)
+      } catch { /* ignore */ }
+    }
+    poll()
+    const id = setInterval(poll, 6000)
+    return () => { cancelled = true; clearInterval(id) }
+  }, [loading, retryingAll])
 
   // ─── History actions ───
   function loadBatch(batch: BatchHistoryItem) {
@@ -1125,6 +1176,20 @@ function BulkCheck() {
               )}
             </motion.form>
 
+            {/* v4.0: server-load notice. A long wait is now explainable —
+                the backend reports how many checks are queued — so we say so
+                rather than leaving the user with a bare spinner. */}
+            {(loading || retryingAll) && serverQueued > 0 && (
+              <div className="mt-4 rounded-xl border border-amber-400/30 bg-amber-500/10 p-3 text-xs text-amber-100 flex items-start gap-2">
+                <FaInfoCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                <span>
+                  The server is busy — {serverQueued}{' '}
+                  {serverQueued === 1 ? 'other check is' : 'other checks are'} queued.
+                  Your results will still arrive; this may just take a little longer.
+                </span>
+              </div>
+            )}
+
             {/* Results */}
             <AnimatePresence>
               {response && (
@@ -1138,6 +1203,17 @@ function BulkCheck() {
 
                   {/* Summary pills */}
                   <div className="flex flex-wrap gap-2 mb-5">
+                    {/* v4.0: bills answered from the server's recent-results
+                        cache cost no CFMS round-trip, so they come back
+                        instantly. Showing the count makes the speed-up
+                        visible instead of mysterious. */}
+                    {!!response.cachedCount && response.cachedCount > 0 && (
+                      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs bg-sky-500/20 text-sky-200 border-sky-400/30">
+                        <FaBolt className="w-3 h-3" />
+                        <span className="font-bold">{response.cachedCount}</span>
+                        <span>instant (recent result)</span>
+                      </div>
+                    )}
                     {Object.entries(response.summary.byVerdict).map(([v, n]) => (
                       <div
                         key={v}
@@ -1155,6 +1231,11 @@ function BulkCheck() {
                     {response.results.map((r) => {
                       const stage = r.pendingAt
                         ? `${r.pendingAt}${r.pendingAction ? ' · ' + r.pendingAction : ''}`
+                        : null
+                      // Cached rows are minutes old, not seconds. Say so, so
+                      // nobody mistakes a recent result for a live read.
+                      const cachedHint = r.fromCache
+                        ? 'Recent result (checked within the last few minutes). Use Retry for a live read.'
                         : null
                       const isOpen = expanded[r.billNumber]
                       return (
@@ -1191,6 +1272,28 @@ function BulkCheck() {
                                     className="w-3.5 h-3.5 text-indigo-300/60 cursor-help flex-shrink-0"
                                     title={VERDICT_REASON[r.verdict]}
                                   />
+                                )}
+                                {cachedHint && (
+                                  <span
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] border border-sky-400/30 bg-sky-500/15 text-sky-200 cursor-help flex-shrink-0"
+                                    title={cachedHint}
+                                  >
+                                    <FaBolt className="w-2.5 h-2.5" />
+                                    recent
+                                  </span>
+                                )}
+                                {cachedHint && !isRetryable(r) && (
+                                  <button
+                                    onClick={() => retryBill(r.billNumber)}
+                                    disabled={!!retryingBills[r.billNumber] || retryingAll}
+                                    className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-white/15 bg-white/5 text-indigo-200 hover:bg-white/10 transition disabled:opacity-60 disabled:cursor-wait"
+                                    title="Fetch this bill live from CFMS"
+                                  >
+                                    {retryingBills[r.billNumber]
+                                      ? <FaSpinner className="w-3 h-3 animate-spin" />
+                                      : <FaRedo className="w-3 h-3" />}
+                                    Refresh
+                                  </button>
                                 )}
                                 {isRetryable(r) && (
                                   <button
@@ -1305,7 +1408,9 @@ function BulkCheck() {
 
                   <p className="text-xs text-indigo-300/40 mt-4 text-center">
                     Checked at {new Date(response.checkedAt).toLocaleString()}
-                    {response.elapsedSeconds && ` · ${response.elapsedSeconds}s`}
+                    {!!response.elapsedSeconds && ` · ${response.elapsedSeconds}s`}
+                    {!!response.queueWaitMs && response.queueWaitMs > 1500 &&
+                      ` · waited ${(response.queueWaitMs / 1000).toFixed(0)}s in queue`}
                   </p>
                 </motion.div>
               )}

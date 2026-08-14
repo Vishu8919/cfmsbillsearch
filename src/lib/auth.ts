@@ -166,6 +166,35 @@ export async function adminFetchUsers(params: {
   return request(`/api/admin/users${suffix}`, { method: 'GET' });
 }
 
+// ── Service usage (backend v4.0) ──
+// Aggregated from the CheckLog collection. Previously the only record of what
+// the service did was console.log on Render, lost on every restart.
+export interface AdminUsage {
+  days: number;
+  totals: {
+    batches: number;
+    bills: number;
+    cached: number;
+    failures: number;
+    erroredBatches: number;
+    avgElapsedSeconds: number;
+    avgQueueWaitMs: number;
+    cacheHitRate: number;
+  };
+  daily: { date: string; batches: number; bills: number; failures: number }[];
+  topUsers: {
+    userId: string;
+    username: string;
+    role: Role | null;
+    bills: number;
+    batches: number;
+  }[];
+}
+
+export async function adminFetchUsage(days = 7): Promise<AdminUsage> {
+  return request(`/api/admin/usage?days=${days}`, { method: 'GET' });
+}
+
 export async function adminSetRole(id: string, role: Role): Promise<{ user: AuthUser }> {
   return request(`/api/admin/users/${id}/role`, {
     method: 'PATCH',
