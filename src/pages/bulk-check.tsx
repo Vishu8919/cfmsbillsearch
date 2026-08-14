@@ -14,6 +14,8 @@ import {
   migrateBatches,
   getToken,
   CloudBatch,
+  fetchBillTimeline,
+  BillTimelineResponse,
 } from '../lib/auth'
 import {
   FaRegTrashAlt,
@@ -30,9 +32,173 @@ import {
   FaInfoCircle,
   FaRedo,
   FaBolt,
+  FaStream,
+  FaCircle,
+  FaDotCircle,
 } from 'react-icons/fa'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:10000'
+
+// ───── Bill stage timeline (Phase 2) ─────
+function fmtDate(iso: string | null): string {
+  if (!iso) return '—'
+  try {
+    return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+  } catch { return '—' }
+}
+
+function dur(days: number | null, inProgress: boolean): string {
+  if (days == null) return inProgress ? 'in progress' : '—'
+  const d = days
+  if (d < 1) {
+    const hrs = Math.round(d * 24)
+    return inProgress ? `${hrs}h so far` : `${hrs}h`
+  }
+  const rounded = d < 10 ? d.toFixed(1) : Math.round(d).toString()
+  return inProgress ? `${rounded}d so far` : `${rounded}d`
+}
+
+function BillTimeline({ billNumber }: { billNumber: string }) {
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [data, setData] = useState<BillTimelineResponse | null>(null)
+
+  // Load once, on mount. This component only mounts when the user opens the
+  // timeline panel, so nothing is fetched until they ask for it.
+  //
+  // NB: this MUST be an effect, not a call during render. Calling the loader
+  // inline would setState mid-render and re-trigger on every pass — a render
+  // loop that only shows up once real data is flowing.
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const res = await fetchBillTimeline(billNumber)
+        if (!cancelled) setData(res)
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : 'Could not load timeline')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [billNumber])
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 text-xs text-indigo-200/70 py-4 justify-center">
+        <FaSpinner className="w-3.5 h-3.5 animate-spin" /> Building timeline…
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="text-xs text-amber-100 bg-amber-500/10 border border-amber-400/30 rounded-lg p-3 flex items-start gap-2">
+        <FaExclamationTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+        <span>{error}</span>
+      </div>
+    )
+  }
+
+  const timeline = data?.timeline || []
+  const summary = data?.summary
+
+  if (!timeline.length) {
+    return (
+      <div className="text-xs text-indigo-200/70 bg-white/5 border border-white/10 rounded-lg p-3">
+        {data?.message || 'No stage history recorded for this bill yet.'}
+        <div className="mt-1 text-indigo-300/50">
+          History builds up automatically each time this bill is checked.
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      {/* Headline figures */}
+      {summary && (
+        <div className="flex flex-wrap gap-x-4 gap-y-1 mb-3 text-[11px]">
+          {summary.totalAgeDays != null && (
+            <span className="text-indigo-200/80">
+              Total age <strong className="text-white">{summary.totalAgeDays}d</strong>
+            </span>
+          )}
+          {summary.daysAtCurrentStage != null && summary.currentStage && (
+            <span className="text-indigo-200/80">
+              At {summary.currentStage} <strong className="text-white">{summary.daysAtCurrentStage}d</strong>
+            </span>
+          )}
+          {summary.bottleneckStage && summary.bottleneckDays != null && (
+            <span className="text-amber-200/90">
+              Slowest: {summary.bottleneckStage} <strong>{summary.bottleneckDays}d</strong>
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Vertical stage list */}
+      <ol className="relative border-l border-white/15 ml-1.5 space-y-3">
+        {timeline.map((s, i) => (
+          <li key={i} className="ml-4">
+            <span
+              className={`absolute -left-[7px] flex items-center justify-center w-3.5 h-3.5 rounded-full ${
+                s.inProgress
+                  ? 'text-sky-300'
+                  : s.slow
+                  ? 'text-amber-300'
+                  : 'text-emerald-300/70'
+              }`}
+            >
+              {s.inProgress ? <FaDotCircle className="w-3 h-3" /> : <FaCircle className="w-2 h-2" />}
+            </span>
+            <div className="flex items-baseline justify-between gap-2">
+              <div className="min-w-0">
+                <div className="text-xs text-indigo-100 truncate">
+                  {s.designation || '—'}
+                  {s.activity && <span className="text-indigo-300/60"> · {s.activity}</span>}
+                </div>
+                <div className="text-[10px] text-indigo-300/50">
+                  {fmtDate(s.startedAt)}
+                  {s.endedAt ? ` → ${fmtDate(s.endedAt)}` : s.inProgress ? ' → now' : ''}
+                  {s.action && s.action.toLowerCase() === 'rejected' && (
+                    <span className="text-red-300"> · Rejected</span>
+                  )}
+                </div>
+              </div>
+              <div className="flex-shrink-0 text-right">
+                <div
+                  className={`text-xs font-semibold tabular-nums ${
+                    s.inProgress ? 'text-sky-200' : s.slow ? 'text-amber-200' : 'text-indigo-100'
+                  }`}
+                >
+                  {dur(s.durationDays, s.inProgress)}
+                </div>
+                {s.slow && s.benchmarkMedianDays != null && (
+                  <div className="text-[9px] text-amber-300/70">
+                    vs {s.benchmarkMedianDays}d median
+                  </div>
+                )}
+              </div>
+            </div>
+          </li>
+        ))}
+      </ol>
+
+      {summary && summary.treasuryOffice && (
+        <div className="mt-3 text-[9px] text-indigo-300/40">
+          {summary.treasuryOffice}
+          {timeline.some((s) => s.slow) && ' · amber stages ran past this treasury’s typical time'}
+        </div>
+      )}
+    </div>
+  )
+}
+
+
 
 // ───── Types ─────
 type BillNote = {
@@ -211,6 +377,7 @@ function BulkCheck() {
   const [error, setError] = useState<string | null>(null)
   const [response, setResponse] = useState<ApiResponse | null>(null)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
+  const [timelineOpen, setTimelineOpen] = useState<Record<string, boolean>>({})
   const [retryingBills, setRetryingBills] = useState<Record<string, boolean>>({})
   const [exportingPdf, setExportingPdf] = useState(false)
   const [exportingPdfNotes, setExportingPdfNotes] = useState(false)
@@ -351,6 +518,7 @@ function BulkCheck() {
     setError(null)
     setResponse(null)
     setExpanded({})
+    setTimelineOpen({})
 
     const bills = billsOverride ?? parseBills(billsText)
 
@@ -1385,14 +1553,29 @@ function BulkCheck() {
                               )}
                             </div>
 
-                            <button
-                              onClick={() => setExpanded((e) => ({ ...e, [r.billNumber]: !e[r.billNumber] }))}
-                              className="mt-3 text-xs text-indigo-300 hover:text-white flex items-center gap-1 transition"
-                            >
-                              {isOpen ? <FaChevronUp className="w-2.5 h-2.5" /> : <FaChevronDown className="w-2.5 h-2.5" />}
-                              {isOpen ? 'Hide raw' : 'View raw'}
-                            </button>
+                            <div className="mt-3 flex items-center gap-4">
+                              <button
+                                onClick={() => setTimelineOpen((e) => ({ ...e, [r.billNumber]: !e[r.billNumber] }))}
+                                className="text-xs text-indigo-300 hover:text-white flex items-center gap-1 transition"
+                              >
+                                <FaStream className="w-2.5 h-2.5" />
+                                {timelineOpen[r.billNumber] ? 'Hide timeline' : 'Timeline'}
+                              </button>
+                              <button
+                                onClick={() => setExpanded((e) => ({ ...e, [r.billNumber]: !e[r.billNumber] }))}
+                                className="text-xs text-indigo-300 hover:text-white flex items-center gap-1 transition"
+                              >
+                                {isOpen ? <FaChevronUp className="w-2.5 h-2.5" /> : <FaChevronDown className="w-2.5 h-2.5" />}
+                                {isOpen ? 'Hide raw' : 'View raw'}
+                              </button>
+                            </div>
                           </div>
+
+                          {timelineOpen[r.billNumber] && (
+                            <div className="border-t border-white/10 bg-black/20 p-4">
+                              <BillTimeline billNumber={r.billNumber} />
+                            </div>
+                          )}
 
                           {isOpen && (
                             <div className="border-t border-white/10 bg-black/20 p-4">

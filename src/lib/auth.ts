@@ -300,3 +300,64 @@ export async function migrateSavedBills(
     body: JSON.stringify({ bills }),
   });
 }
+
+// ── Bill history & timeline (Phase 2) ──
+// The stage timeline is reconstructed from stored snapshots of the bill's flow
+// table. `slow` marks a stage that ran well past its treasury's median.
+export interface TimelineStage {
+  designation: string | null;
+  activity: string | null;
+  action: string | null;
+  status: string | null;
+  startedAt: string | null;
+  endedAt: string | null;
+  durationDays: number | null;
+  inProgress: boolean;
+  benchmarkMedianDays?: number | null;
+  slow?: boolean;
+}
+
+export interface BillTimelineSummary {
+  billNumber: string;
+  verdict: string;
+  treasuryOffice: string | null;
+  totalAgeDays: number | null;
+  currentStage: string | null;
+  currentActivity: string | null;
+  daysAtCurrentStage: number | null;
+  bottleneckStage: string | null;
+  bottleneckDays: number | null;
+  stageCount: number;
+  changeEvents: number;
+}
+
+export interface BillTimelineResponse {
+  billNumber: string;
+  summary: BillTimelineSummary | null;
+  timeline: TimelineStage[];
+  message?: string;
+}
+
+export async function fetchBillTimeline(billNumber: string): Promise<BillTimelineResponse> {
+  return request(`/api/bills/${encodeURIComponent(billNumber)}/timeline`, { method: 'GET' });
+}
+
+export interface BillHistoryEvent {
+  at: string | null;
+  verdict: string;
+  pendingAt: string | null;
+  changes: string[];
+  seenCount: number;
+}
+
+export interface BillHistoryResponse {
+  billNumber: string;
+  history: BillHistoryEvent[];
+  firstSeenAt?: string;
+  lastSeenAt?: string;
+  message?: string;
+}
+
+export async function fetchBillHistory(billNumber: string): Promise<BillHistoryResponse> {
+  return request(`/api/bills/${encodeURIComponent(billNumber)}/history`, { method: 'GET' });
+}
