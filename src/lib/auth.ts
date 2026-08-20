@@ -460,3 +460,19 @@ export async function updateTracking(
 export async function untrackBill(id: string): Promise<{ ok: boolean }> {
   return request(`/api/tracking/${id}`, { method: 'DELETE' });
 }
+
+export interface BulkTrackResult {
+  ok: boolean;
+  added: string[];
+  reactivated: string[];
+  already: string[];
+  skipped: string[];       // hit the per-user cap
+  limit: number;
+  activeCount: number;
+}
+
+export async function trackBillsBulk(
+  bills: { billNumber: string; label?: string }[]
+): Promise<BulkTrackResult> {
+  return request('/api/tracking/bulk', { method: 'POST', body: JSON.stringify({ bills }) });
+}

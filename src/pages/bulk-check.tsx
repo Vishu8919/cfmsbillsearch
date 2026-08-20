@@ -17,6 +17,7 @@ import {
   fetchBillTimeline,
   BillTimelineResponse,
   trackBill,
+  trackBillsBulk,
   fetchTracking,
 } from '../lib/auth'
 import {
@@ -393,6 +394,7 @@ function BulkCheck() {
   const [trackedSet, setTrackedSet] = useState<Set<string>>(new Set())
   const [trackBusy, setTrackBusy] = useState<Record<string, boolean>>({})
   const [trackNote, setTrackNote] = useState<string | null>(null)
+  const [trackingAll, setTrackingAll] = useState(false)
   const [retryingBills, setRetryingBills] = useState<Record<string, boolean>>({})
   const [exportingPdf, setExportingPdf] = useState(false)
   const [exportingPdfNotes, setExportingPdfNotes] = useState(false)
@@ -745,6 +747,46 @@ function BulkCheck() {
       setTrackNote(err instanceof Error ? err.message : 'Could not track this bill')
     } finally {
       setTrackBusy((b) => ({ ...b, [billNumber]: false }))
+    }
+  }
+
+  // Track every still-moving bill in the current result set. Sent as ONE
+  // request: the per-user cap has to be applied against a single count, and
+  // thirty parallel POSTs would each read the same stale count and overshoot.
+  const handleTrackAll = async () => {
+    if (!response) return
+    const candidates = response.results
+      .filter((r) => r && r.billNumber && !isTerminalVerdict(r.verdict) && !isRetryable(r))
+      .filter((r) => !trackedSet.has(r.billNumber.replace(/\D/g, '')))
+      .map((r) => ({ billNumber: r.billNumber, label: r.userDescription }))
+    if (candidates.length === 0) {
+      setTrackNote('Nothing new to track in these results.')
+      return
+    }
+    setTrackingAll(true)
+    setTrackNote(null)
+    try {
+      const res = await trackBillsBulk(candidates)
+      setTrackedSet((prev) => {
+        const next = new Set(prev)
+        for (const b of [...res.added, ...res.reactivated]) next.add(b.replace(/\D/g, ''))
+        return next
+      })
+      const parts: string[] = []
+      const newly = res.added.length + res.reactivated.length
+      if (newly) parts.push(`Now tracking ${newly} bill${newly === 1 ? '' : 's'}`)
+      if (res.already.length) parts.push(`${res.already.length} already tracked`)
+      if (res.skipped.length) {
+        parts.push(
+          `${res.skipped.length} skipped — you can track ${res.limit} at a time. ` +
+          `Remove some on the Tracked bills page to make room.`
+        )
+      }
+      setTrackNote(parts.join(' · '))
+    } catch (err) {
+      setTrackNote(err instanceof Error ? err.message : 'Could not track these bills')
+    } finally {
+      setTrackingAll(false)
     }
   }
 
@@ -1423,6 +1465,29 @@ function BulkCheck() {
                   className="mt-5 bg-gradient-to-br from-indigo-900/80 to-purple-900/80 backdrop-blur-sm p-5 sm:p-6 rounded-2xl shadow-2xl border border-white/20"
                 >
                   <h2 className="text-lg font-bold text-indigo-100 mb-4">Results</h2>
+
+                  {/* Track all: one button for the whole result set, next to
+                      the per-bill Track buttons on each card. Counts only bills
+                      that can still move and aren't already tracked. */}
+                  {(() => {
+                    const trackable = response.results.filter(
+                      (r) => r && r.billNumber && !isTerminalVerdict(r.verdict) && !isRetryable(r)
+                        && !trackedSet.has(r.billNumber.replace(/\D/g, ''))
+                    ).length
+                    if (trackable === 0) return null
+                    return (
+                      <button
+                        onClick={handleTrackAll}
+                        disabled={trackingAll}
+                        className="mb-4 inline-flex items-center gap-2 text-xs px-3 py-2 rounded-lg border border-indigo-400/30 bg-indigo-500/15 text-indigo-100 hover:bg-indigo-500/25 transition disabled:opacity-60"
+                      >
+                        {trackingAll
+                          ? <FaSpinner className="w-3 h-3 animate-spin" />
+                          : <FaBell className="w-3 h-3" />}
+                        {trackingAll ? 'Tracking…' : `Track all ${trackable} bill${trackable === 1 ? '' : 's'}`}
+                      </button>
+                    )
+                  })()}
 
                   {/* Summary pills */}
                   <div className="flex flex-wrap gap-2 mb-5">

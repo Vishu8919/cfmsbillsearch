@@ -7,7 +7,8 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaUserCircle, FaSignOutAlt, FaUserShield, FaChevronDown, FaSignInAlt } from 'react-icons/fa';
+import { FaUserCircle, FaSignOutAlt, FaUserShield, FaChevronDown, FaSignInAlt, FaBell } from 'react-icons/fa';
+import { fetchTracking } from '../lib/auth';
 import { useAuth } from '../context/AuthContext';
 
 const ROLE_LABEL: Record<string, string> = {
@@ -26,6 +27,19 @@ export default function AccountBar() {
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  // Unseen tracked-bill updates, shown as a dot on the avatar and a count in
+  // the menu. Fetched once per mount; failures are silent because tracking is
+  // an enhancement and must never break the account control.
+  const [unseen, setUnseen] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    fetchTracking()
+      .then((d) => { if (!cancelled) setUnseen(d.unseenTotal || 0); })
+      .catch(() => { /* ignore */ });
+    return () => { cancelled = true; };
+  }, [user]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -64,6 +78,9 @@ export default function AccountBar() {
       >
         <FaUserCircle className="w-5 h-5 text-indigo-300" />
         <span className="text-sm font-medium max-w-[120px] truncate">{user.username}</span>
+        {unseen > 0 && (
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-400" title={`${unseen} tracked bill update(s)`} />
+        )}
         <FaChevronDown className={`w-2.5 h-2.5 text-indigo-300 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
 
@@ -83,6 +100,20 @@ export default function AccountBar() {
                 {ROLE_LABEL[user.role] || user.role}
               </span>
             </div>
+
+            <Link
+              href="/tracking"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2 w-full text-left px-2 py-2 rounded-lg text-sm text-indigo-100 hover:bg-white/10 transition"
+            >
+              <FaBell className="w-4 h-4 text-indigo-300" />
+              Tracked Bills
+              {unseen > 0 && (
+                <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/25 text-amber-200 border border-amber-400/40">
+                  {unseen}
+                </span>
+              )}
+            </Link>
 
             {user.role === 'admin' && (
               <Link
