@@ -476,3 +476,19 @@ export async function trackBillsBulk(
 ): Promise<BulkTrackResult> {
   return request('/api/tracking/bulk', { method: 'POST', body: JSON.stringify({ bills }) });
 }
+
+export interface RefreshAllResult {
+  ok: boolean;
+  refreshed: number;
+  changed: number;
+  skipped: number;      // still inside the per-bill cooldown
+  failed: number;
+  total: number;
+  cooldown?: boolean;   // every bill was in cooldown
+  busy?: boolean;       // server queue filled mid-run; partial result
+  cooldownMinutes?: number;
+}
+
+export async function refreshAllTracked(): Promise<RefreshAllResult> {
+  return request('/api/tracking/refresh-all', { method: 'POST' });
+}

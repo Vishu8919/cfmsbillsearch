@@ -364,6 +364,21 @@ async function postCheck(body: {
 const TERMINAL_VERDICTS = new Set(['PAID', 'REJECTED', 'NOT_FOUND'])
 const isTerminalVerdict = (v: string) => TERMINAL_VERDICTS.has(v)
 
+// Split "20264661619 - Salary bill April 2026" into number + description.
+// Mirrors parseBillLine() in the backend's server.js: four-digit year, optional
+// dash, then 6-10 digits. The description becomes the tracking label, which is
+// what makes a list of bill numbers readable on the Tracked bills page.
+function parseBillLine(line: string): { billNumber: string; description?: string } | null {
+  const trimmed = String(line || '').trim()
+  const m = trimmed.match(/^(\d{4}-?\d{6,10})\b/)
+  if (!m) return null
+  const description = trimmed
+    .slice(m[0].length)
+    .replace(/^[\s\-–—:|,]+/, '')
+    .trim()
+  return { billNumber: m[1], description: description || undefined }
+}
+
 const RETRYABLE_VERDICTS = new Set(['UNKNOWN', 'ERROR', 'PAGE_LOAD_FAILED'])
 function isRetryable(r: { verdict: string; incomplete?: boolean }): boolean {
   return RETRYABLE_VERDICTS.has(r.verdict) || (!!r.incomplete && r.verdict !== 'NOT_FOUND' && r.verdict !== 'AUTH_FAILED')
@@ -395,6 +410,7 @@ function BulkCheck() {
   const [trackBusy, setTrackBusy] = useState<Record<string, boolean>>({})
   const [trackNote, setTrackNote] = useState<string | null>(null)
   const [trackingAll, setTrackingAll] = useState(false)
+  const [trackingBatch, setTrackingBatch] = useState<string | null>(null)
   const [retryingBills, setRetryingBills] = useState<Record<string, boolean>>({})
   const [exportingPdf, setExportingPdf] = useState(false)
   const [exportingPdfNotes, setExportingPdfNotes] = useState(false)
@@ -742,7 +758,7 @@ function BulkCheck() {
     try {
       await trackBill(billNumber, description)
       setTrackedSet((prev) => new Set(prev).add(key))
-      setTrackNote(`Now tracking ${billNumber}. You'll be emailed when it moves.`)
+      setTrackNote(`Now tracking ${billNumber}. Updates appear on your Tracked bills page.`)
     } catch (err) {
       setTrackNote(err instanceof Error ? err.message : 'Could not track this bill')
     } finally {
@@ -787,6 +803,53 @@ function BulkCheck() {
       setTrackNote(err instanceof Error ? err.message : 'Could not track these bills')
     } finally {
       setTrackingAll(false)
+    }
+  }
+
+  // Track every bill in a SAVED batch, without running it first. The saved
+  // batch stores raw "billNumber description" lines, so each is parsed the
+  // same way handleCheck parses the textarea — that keeps the description as
+  // the tracking label, which is what makes a list of bill numbers readable.
+  const handleTrackBatch = async (batch: BatchHistoryItem) => {
+    const parsed = batch.bills
+      .map(parseBillLine)
+      .filter(Boolean) as { billNumber: string; description?: string }[]
+
+    const candidates = parsed
+      .filter((p) => !trackedSet.has(p.billNumber.replace(/\D/g, '')))
+      .map((p) => ({ billNumber: p.billNumber, label: p.description }))
+
+    if (candidates.length === 0) {
+      setTrackNote(`Every bill in "${batch.name}" is already tracked.`)
+      setIsSidebarOpen(false)
+      return
+    }
+
+    setTrackingBatch(batch.id)
+    setTrackNote(null)
+    try {
+      const res = await trackBillsBulk(candidates)
+      setTrackedSet((prev) => {
+        const next = new Set(prev)
+        for (const b of [...res.added, ...res.reactivated]) next.add(b.replace(/\D/g, ''))
+        return next
+      })
+      const parts: string[] = []
+      const newly = res.added.length + res.reactivated.length
+      if (newly) parts.push(`Now tracking ${newly} bill${newly === 1 ? '' : 's'} from "${batch.name}"`)
+      if (res.already.length) parts.push(`${res.already.length} already tracked`)
+      if (res.skipped.length) {
+        parts.push(
+          `${res.skipped.length} skipped — you can track ${res.limit} at a time. ` +
+          `Remove some on the Tracked bills page to make room.`
+        )
+      }
+      setTrackNote(parts.join(' · '))
+      setIsSidebarOpen(false)
+    } catch (err) {
+      setTrackNote(err instanceof Error ? err.message : 'Could not track this batch')
+    } finally {
+      setTrackingBatch(null)
     }
   }
 
@@ -1688,7 +1751,7 @@ function BulkCheck() {
                                     onClick={() => handleTrack(r.billNumber, r.userDescription)}
                                     disabled={!!trackBusy[r.billNumber]}
                                     className="text-xs text-indigo-300 hover:text-white flex items-center gap-1 transition disabled:opacity-50"
-                                    title="Check this bill automatically and email me when it moves"
+                                    title="Check this bill automatically and show updates on the Tracked bills page"
                                   >
                                     {trackBusy[r.billNumber]
                                       ? <FaSpinner className="w-2.5 h-2.5 animate-spin" />
@@ -1900,6 +1963,20 @@ function BulkCheck() {
                       Load only
                     </button>
                   </div>
+
+                  {/* Track the whole saved batch without running it. Useful for
+                      a monthly salary batch you want watched from the moment
+                      it is filed. */}
+                  <button
+                    onClick={() => handleTrackBatch(batch)}
+                    disabled={trackingBatch === batch.id}
+                    className="w-full mt-2 bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-100 text-xs py-1.5 rounded-lg border border-indigo-400/30 flex items-center justify-center gap-1.5 transition disabled:opacity-60"
+                  >
+                    {trackingBatch === batch.id
+                      ? <FaSpinner className="w-2.5 h-2.5 animate-spin" />
+                      : <FaBell className="w-2.5 h-2.5" />}
+                    {trackingBatch === batch.id ? 'Tracking…' : 'Track batch'}
+                  </button>
                 </motion.li>
               ))}
             </ul>

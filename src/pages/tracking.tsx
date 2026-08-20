@@ -11,6 +11,7 @@ import RequireAuth from '../components/RequireAuth'
 import AccountBar from '../components/AccountBar'
 import {
   fetchTracking, updateTracking, untrackBill, refreshTrackedBill, markTrackedSeen,
+  refreshAllTracked,
   TrackingList, TrackedBill,
 } from '../lib/auth'
 
@@ -50,6 +51,8 @@ function TrackingPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState<Record<string, boolean>>({})
+  const [recheckingAll, setRecheckingAll] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
   const [open, setOpen] = useState<Record<string, boolean>>({})
   // Re-render on a timer so the "N minutes ago" labels stay truthful without
   // refetching anything from the server.
@@ -80,6 +83,39 @@ function TrackingPage() {
     try { await fn(); await load(true) }
     catch (e) { setError(e instanceof Error ? e.message : 'Action failed') }
     finally { setBusy((b) => ({ ...b, [id]: false })) }
+  }
+
+  // Recheck every tracked bill in one go. The server does this as ONE batched
+  // CFMS session rather than N separate reads, and skips anything still inside
+  // its per-bill cooldown — so pressing this twice in a row is harmless.
+  const recheckAll = async () => {
+    setRecheckingAll(true)
+    setNotice(null)
+    setError(null)
+    try {
+      const r = await refreshAllTracked()
+      if (r.cooldown) {
+        setNotice(
+          `All ${r.total} bill${r.total === 1 ? '' : 's'} were checked in the last ` +
+          `${r.cooldownMinutes ?? 5} minutes. Try again shortly.`
+        )
+      } else {
+        const parts: string[] = []
+        parts.push(`Rechecked ${r.refreshed} bill${r.refreshed === 1 ? '' : 's'}`)
+        parts.push(r.changed > 0
+          ? `${r.changed} changed`
+          : 'nothing moved')
+        if (r.skipped) parts.push(`${r.skipped} checked too recently`)
+        if (r.failed) parts.push(`${r.failed} could not be read`)
+        if (r.busy) parts.push('server was busy — some bills were not reached')
+        setNotice(parts.join(' · '))
+      }
+      await load(true)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not recheck your bills')
+    } finally {
+      setRecheckingAll(false)
+    }
   }
 
   const toggleOpen = (t: TrackedBill) => {
@@ -118,17 +154,37 @@ function TrackingPage() {
                 bill for a live reading.
               </p>
             </div>
-            <Link
-              href="/settings/cfms"
-              className="flex-shrink-0 inline-flex items-center gap-2 text-xs px-3 py-2 rounded-lg border border-white/15 bg-white/5 hover:bg-white/10 transition"
-            >
-              <FaShieldAlt className="w-3 h-3" /> Credentials
-            </Link>
+            <div className="flex-shrink-0 flex items-center gap-2">
+              {!!data?.hasCredentials && data.activeCount > 0 && (
+                <button
+                  onClick={recheckAll}
+                  disabled={recheckingAll}
+                  className="inline-flex items-center gap-2 text-xs px-3 py-2 rounded-lg border border-indigo-400/30 bg-indigo-500/15 text-indigo-100 hover:bg-indigo-500/25 transition disabled:opacity-60"
+                  title="Read all tracked bills from CFMS now"
+                >
+                  <FaSyncAlt className={`w-3 h-3 ${recheckingAll ? 'animate-spin' : ''}`} />
+                  {recheckingAll ? 'Rechecking…' : 'Recheck all'}
+                </button>
+              )}
+              <Link
+                href="/settings/cfms"
+                className="inline-flex items-center gap-2 text-xs px-3 py-2 rounded-lg border border-white/15 bg-white/5 hover:bg-white/10 transition"
+              >
+                <FaShieldAlt className="w-3 h-3" /> Credentials
+              </Link>
+            </div>
           </div>
 
           {loading && (
             <div className="flex items-center gap-2 text-sm text-indigo-200/70 py-10 justify-center">
               <FaSpinner className="w-4 h-4 animate-spin" /> Loading…
+            </div>
+          )}
+
+          {notice && (
+            <div className="text-xs text-indigo-100 bg-indigo-500/10 border border-indigo-400/30 rounded-lg p-3 mb-4 flex items-start justify-between gap-3">
+              <span>{notice}</span>
+              <button onClick={() => setNotice(null)} className="text-indigo-300/60 hover:text-white flex-shrink-0">✕</button>
             </div>
           )}
 
