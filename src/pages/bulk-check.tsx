@@ -16,6 +16,8 @@ import {
   CloudBatch,
   fetchBillTimeline,
   BillTimelineResponse,
+  trackBill,
+  fetchTracking,
 } from '../lib/auth'
 import {
   FaRegTrashAlt,
@@ -35,6 +37,7 @@ import {
   FaStream,
   FaCircle,
   FaDotCircle,
+  FaBell,
 } from 'react-icons/fa'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:10000'
@@ -129,7 +132,9 @@ function BillTimeline({ billNumber }: { billNumber: string }) {
           )}
           {summary.daysAtCurrentStage != null && summary.currentStage && (
             <span className="text-indigo-200/80">
-              At {summary.currentStage} <strong className="text-white">{summary.daysAtCurrentStage}d</strong>
+              {/* Same formatter as the stage rows, so a sub-day figure reads
+                  "2h" in both places instead of "0.1d" here and "2h" below. */}
+              At {summary.currentStage} <strong className="text-white">{dur(summary.daysAtCurrentStage, false)}</strong>
             </span>
           )}
           {summary.bottleneckStage && summary.bottleneckDays != null && (
@@ -353,6 +358,11 @@ async function postCheck(body: {
   return data as ApiResponse
 }
 
+// Mirrors TERMINAL_VERDICTS in the backend's lib/verdict.js. A bill in one of
+// these states will not move again, so there is nothing to track.
+const TERMINAL_VERDICTS = new Set(['PAID', 'REJECTED', 'NOT_FOUND'])
+const isTerminalVerdict = (v: string) => TERMINAL_VERDICTS.has(v)
+
 const RETRYABLE_VERDICTS = new Set(['UNKNOWN', 'ERROR', 'PAGE_LOAD_FAILED'])
 function isRetryable(r: { verdict: string; incomplete?: boolean }): boolean {
   return RETRYABLE_VERDICTS.has(r.verdict) || (!!r.incomplete && r.verdict !== 'NOT_FOUND' && r.verdict !== 'AUTH_FAILED')
@@ -378,6 +388,11 @@ function BulkCheck() {
   const [response, setResponse] = useState<ApiResponse | null>(null)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [timelineOpen, setTimelineOpen] = useState<Record<string, boolean>>({})
+  // Bill numbers already tracked, so the button reflects reality instead of
+  // letting the user re-add something and get a 409.
+  const [trackedSet, setTrackedSet] = useState<Set<string>>(new Set())
+  const [trackBusy, setTrackBusy] = useState<Record<string, boolean>>({})
+  const [trackNote, setTrackNote] = useState<string | null>(null)
   const [retryingBills, setRetryingBills] = useState<Record<string, boolean>>({})
   const [exportingPdf, setExportingPdf] = useState(false)
   const [exportingPdfNotes, setExportingPdfNotes] = useState(false)
@@ -701,6 +716,37 @@ function BulkCheck() {
     const id = setInterval(poll, 6000)
     return () => { cancelled = true; clearInterval(id) }
   }, [loading, retryingAll])
+
+  // Load the user's tracked bills once, so result cards can show the correct
+  // Track/Tracked state. Failures are silent — tracking is an enhancement, and
+  // a tracking outage must not disturb bill checking.
+  useEffect(() => {
+    let cancelled = false
+    fetchTracking()
+      .then((d) => {
+        if (cancelled) return
+        setTrackedSet(new Set(d.tracked.filter((t) => t.active).map((t) => t.billNumber)))
+      })
+      .catch(() => { /* ignore */ })
+    return () => { cancelled = true }
+  }, [])
+
+  // Track a bill from its result card. Bill numbers are stored digits-only on
+  // the server, so compare and store in that form here too.
+  const handleTrack = async (billNumber: string, description?: string) => {
+    const key = billNumber.replace(/\D/g, '')
+    setTrackBusy((b) => ({ ...b, [billNumber]: true }))
+    setTrackNote(null)
+    try {
+      await trackBill(billNumber, description)
+      setTrackedSet((prev) => new Set(prev).add(key))
+      setTrackNote(`Now tracking ${billNumber}. You'll be emailed when it moves.`)
+    } catch (err) {
+      setTrackNote(err instanceof Error ? err.message : 'Could not track this bill')
+    } finally {
+      setTrackBusy((b) => ({ ...b, [billNumber]: false }))
+    }
+  }
 
   // ─── History actions ───
   function loadBatch(batch: BatchHistoryItem) {
@@ -1358,6 +1404,15 @@ function BulkCheck() {
               </div>
             )}
 
+            {trackNote && (
+              <div className="mt-4 rounded-xl border border-indigo-400/30 bg-indigo-500/10 p-3 text-xs text-indigo-100 flex items-start justify-between gap-3">
+                <span>{trackNote}</span>
+                <button onClick={() => setTrackNote(null)} className="text-indigo-300/60 hover:text-white flex-shrink-0">
+                  <FaTimes className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+
             {/* Results */}
             <AnimatePresence>
               {response && (
@@ -1553,7 +1608,30 @@ function BulkCheck() {
                               )}
                             </div>
 
-                            <div className="mt-3 flex items-center gap-4">
+                            <div className="mt-3 flex items-center gap-4 flex-wrap">
+                              {/* Track: only offered for bills that are still
+                                  moving. A PAID or REJECTED bill has nothing
+                                  left to notify about, and the tracker would
+                                  retire it on its first run anyway. */}
+                              {!isTerminalVerdict(r.verdict) && (
+                                trackedSet.has(r.billNumber.replace(/\D/g, '')) ? (
+                                  <span className="text-xs text-emerald-300/80 flex items-center gap-1">
+                                    <FaBell className="w-2.5 h-2.5" /> Tracked
+                                  </span>
+                                ) : (
+                                  <button
+                                    onClick={() => handleTrack(r.billNumber, r.userDescription)}
+                                    disabled={!!trackBusy[r.billNumber]}
+                                    className="text-xs text-indigo-300 hover:text-white flex items-center gap-1 transition disabled:opacity-50"
+                                    title="Check this bill automatically and email me when it moves"
+                                  >
+                                    {trackBusy[r.billNumber]
+                                      ? <FaSpinner className="w-2.5 h-2.5 animate-spin" />
+                                      : <FaBell className="w-2.5 h-2.5" />}
+                                    Track
+                                  </button>
+                                )
+                              )}
                               <button
                                 onClick={() => setTimelineOpen((e) => ({ ...e, [r.billNumber]: !e[r.billNumber] }))}
                                 className="text-xs text-indigo-300 hover:text-white flex items-center gap-1 transition"

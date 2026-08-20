@@ -361,3 +361,102 @@ export interface BillHistoryResponse {
 export async function fetchBillHistory(billNumber: string): Promise<BillHistoryResponse> {
   return request(`/api/bills/${encodeURIComponent(billNumber)}/history`, { method: 'GET' });
 }
+
+// ── Tracking & credential vault (Phase 3) ──
+export interface CredentialStatus {
+  hasCredentials: boolean;
+  vaultAvailable: boolean;
+  consentAt?: string | null;
+  consentVersion?: string;
+  currentConsentVersion?: string;
+  needsReconsent?: boolean;
+  lastVerifiedAt?: string | null;
+  lastUsedAt?: string | null;
+  failCount?: number;
+  disabledReason?: string | null;
+  healthy?: boolean;
+}
+
+export interface TrackChange {
+  at: string | null;
+  kind: string;            // status | note | finished
+  summary: string | null;
+  from: string | null;
+  to: string | null;
+  remark: string | null;
+}
+
+export interface TrackedBill {
+  id: string;
+  billNumber: string;
+  label: string | null;
+  active: boolean;
+  lastVerdict: string | null;
+  lastBillStatus: string | null;
+  lastPendingAt: string | null;
+  lastCheckedAt: string | null;
+  lastChangedAt: string | null;
+  nextCheckAt: string | null;
+  unseenCount: number;
+  changes: TrackChange[];
+  errorCount: number;
+  lastError: string | null;
+  stoppedReason: string | null;
+  createdAt: string | null;
+}
+
+export interface TrackingList {
+  tracked: TrackedBill[];
+  limit: number;
+  activeCount: number;
+  unseenTotal: number;
+  hasCredentials: boolean;
+  vaultAvailable: boolean;
+  intervalMinutes: number;
+  manualCooldownSeconds: number;
+}
+
+export async function fetchCredentialStatus(): Promise<CredentialStatus> {
+  return request('/api/tracking/credentials', { method: 'GET' });
+}
+
+export async function saveCfmsCredentials(payload: {
+  username: string;
+  password: string;
+  consent: true;
+  consentVersion: string;
+  probeBill?: string;
+}): Promise<{ ok: boolean; message: string }> {
+  return request('/api/tracking/credentials', { method: 'POST', body: JSON.stringify(payload) });
+}
+
+export async function deleteCfmsCredentials(): Promise<{ ok: boolean; message: string }> {
+  return request('/api/tracking/credentials', { method: 'DELETE' });
+}
+
+export async function fetchTracking(): Promise<TrackingList> {
+  return request('/api/tracking', { method: 'GET' });
+}
+
+export async function trackBill(billNumber: string, label?: string): Promise<{ ok: boolean; tracked: TrackedBill }> {
+  return request('/api/tracking', { method: 'POST', body: JSON.stringify({ billNumber, label }) });
+}
+
+export async function refreshTrackedBill(id: string): Promise<{ ok: boolean; changed: boolean; tracked: TrackedBill }> {
+  return request(`/api/tracking/${id}/refresh`, { method: 'POST' });
+}
+
+export async function markTrackedSeen(id: string): Promise<{ ok: boolean }> {
+  return request(`/api/tracking/${id}/seen`, { method: 'POST' });
+}
+
+export async function updateTracking(
+  id: string,
+  patch: { label?: string; active?: boolean }
+): Promise<{ ok: boolean; tracked: TrackedBill }> {
+  return request(`/api/tracking/${id}`, { method: 'PATCH', body: JSON.stringify(patch) });
+}
+
+export async function untrackBill(id: string): Promise<{ ok: boolean }> {
+  return request(`/api/tracking/${id}`, { method: 'DELETE' });
+}
