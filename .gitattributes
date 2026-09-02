@@ -1,0 +1,48 @@
+# Line endings.
+#
+# text=auto  -> on COMMIT, normalise text files to LF in the stored history.
+# eol=crlf   -> on CHECKOUT, write CRLF into the working tree.
+#
+# Result: the repository is uniformly LF no matter who commits, while local
+# working copies stay CRLF for Windows tooling. Line endings stop being part
+# of a file's identity, so a three-line change shows as a three-line diff.
+#
+# This lives in the repo rather than in core.autocrlf on purpose. core.autocrlf
+# is a per-machine setting, so it only helps if every clone is configured the
+# same way. This file travels with the code.
+* text=auto eol=crlf
+
+# ── Must stay LF everywhere ──────────────────────────────────────────────
+# eol=crlf above is unconditional and would apply on Render's Linux builder
+# too. Anything Linux EXECUTES has to keep LF: a shebang checked out as
+# "#!/bin/bash\r" makes the kernel look for an interpreter literally named
+# "bash\r", and the error message never mentions line endings.
+*.sh        text eol=lf
+*.bash      text eol=lf
+Dockerfile  text eol=lf
+Procfile    text eol=lf
+*.pem       text eol=lf
+
+# ── Binary: never diff, never convert ────────────────────────────────────
+# Without these, git may guess a file is text and corrupt it by rewriting
+# bytes that happen to look like line endings.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.webp  binary
+*.ico   binary
+*.pdf   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.eot   binary
+*.zip   binary
+*.rar   binary
+*.xlsx  binary
+
+# ── Review noise ─────────────────────────────────────────────────────────
+# The lockfile is generated. Collapsing it in diffs keeps a real review from
+# being buried under thousands of dependency lines. It is still committed and
+# still versioned -- this only affects how it is DISPLAYED.
+package-lock.json  -diff linguist-generated
