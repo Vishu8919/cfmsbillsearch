@@ -10,7 +10,7 @@ export default function Terms() {
         <title>Terms of Service | CFMS Bills Status</title>
         <meta
           name="description"
-          content="Terms of Service for CFMS Bills Status — the rules and conditions for using our free Andhra Pradesh CFMS bill status checker tool."
+          content="Terms of Service for CFMS Bills Status — the rules and conditions for using our unofficial Andhra Pradesh CFMS bill status checker, including free and paid Pro plans."
         />
         <link rel="canonical" href="https://www.cfmsbillsstatus.online/terms" />
       </Head>
@@ -40,7 +40,7 @@ export default function Terms() {
               Terms of Service
             </h1>
             <p className="mt-2 text-indigo-200/60 text-sm">
-              Last updated: <strong className="text-indigo-300/80">June 15, 2026</strong>
+              Last updated: <strong className="text-indigo-300/80">September 2, 2026</strong>
             </p>
             <div className="mt-4 h-1 w-24 mx-auto bg-gradient-to-r from-indigo-400/50 to-purple-400/50 rounded-full"></div>
           </motion.div>
@@ -64,11 +64,20 @@ export default function Terms() {
             <section className="space-y-3">
               <h2 className="text-lg sm:text-xl font-semibold text-white">1. About the Service</h2>
               <p className="text-sm sm:text-base leading-relaxed text-indigo-200/70">
-                CFMS Bills Status is a free, unofficial tool that provides a simplified
+                CFMS Bills Status is an unofficial tool that provides a simplified
                 interface for checking Andhra Pradesh CFMS (Comprehensive Financial
                 Management System) bill statuses. The Service helps you reach the official
                 CFMS bill status page using your bill number and offers convenience features
                 such as search history and bulk checking.
+              </p>
+              <p className="text-sm sm:text-base leading-relaxed text-indigo-200/70">
+                The Service is available on a free plan and on a paid plan called Pro. Bill
+                searching itself is free and always will be; Pro raises the daily limits and
+                unlocks longer history for people who check bills in volume. Current prices
+                are listed on the{' '}
+                <Link href="/pricing" className="text-indigo-400 hover:text-indigo-300 underline underline-offset-2">
+                  pricing page
+                </Link>.
               </p>
               <div className="bg-yellow-900/20 border border-yellow-500/20 rounded-xl p-4 text-xs text-yellow-200/70 leading-relaxed">
                 <strong className="text-yellow-300">Not an official government service:</strong>{' '}
@@ -152,7 +161,8 @@ export default function Terms() {
               <h2 className="text-lg sm:text-xl font-semibold text-white">7. Advertising</h2>
               <p className="text-sm sm:text-base leading-relaxed text-indigo-200/70">
                 The Service may display advertisements served by third parties, including
-                Google AdSense. These advertisements help keep the Service free. Your
+                Google AdSense. These advertisements help keep the free plan free.
+                Advertisements are not shown to users on an active Pro subscription. Your
                 interactions with advertisers are solely between you and the advertiser. For
                 details on how advertising data is handled, please see our{' '}
                 <Link href="/privacy-policy" className="text-indigo-400 hover:text-indigo-300 underline underline-offset-2">
@@ -164,7 +174,51 @@ export default function Terms() {
             <div className="h-px bg-white/5"></div>
 
             <section className="space-y-3">
-              <h2 className="text-lg sm:text-xl font-semibold text-white">8. Changes to these Terms</h2>
+              <h2 className="text-lg sm:text-xl font-semibold text-white">8. Paid subscriptions</h2>
+              <p className="text-sm sm:text-base leading-relaxed text-indigo-200/70">
+                Pro is a paid subscription. Prices, plan limits and the discounted rate for
+                verified Andhra Pradesh government staff are set out on the{' '}
+                <Link href="/pricing" className="text-indigo-400 hover:text-indigo-300 underline underline-offset-2">
+                  pricing page
+                </Link>
+                , which forms part of these Terms.
+              </p>
+              <p className="text-sm sm:text-base leading-relaxed text-indigo-200/70">
+                Payments are processed by Razorpay. We do not receive, see or store your
+                card, UPI or bank details at any point. You may pay once for a single month
+                or year, or set up automatic renewal. If you choose automatic renewal, you
+                will be notified at least 24 hours before each charge and may cancel at any
+                time from your account settings; cancelling stops all future charges and
+                does not refund the period already in progress.
+              </p>
+              <p className="text-sm sm:text-base leading-relaxed text-indigo-200/70">
+                To qualify for the government staff rate you must submit a CFMS ID and a
+                recent salary paybill, which we check manually. The paybill is used only to
+                confirm your employment, is visible only to the site administrator, and is
+                deleted as soon as the check is complete, whether or not you are approved.
+                Submitting false information to obtain the discount may result in your
+                account being closed.
+              </p>
+              <p className="text-sm sm:text-base leading-relaxed text-indigo-200/70">
+                Refunds and cancellations are governed by our{' '}
+                <Link href="/refund-policy" className="text-indigo-400 hover:text-indigo-300 underline underline-offset-2">
+                  Refund &amp; Cancellation Policy
+                </Link>
+                . We may change prices at any time, but a change never affects a period you
+                have already paid for, and you will be told before any renewal at a new
+                price.
+              </p>
+              <p className="text-sm sm:text-base leading-relaxed text-indigo-200/70">
+                If your subscription ends, your account reverts to the free plan. Nothing you
+                have saved is deleted — your saved batches, tracked bills and history remain,
+                and the free plan&apos;s limits apply only to adding new ones.
+              </p>
+            </section>
+
+            <div className="h-px bg-white/5"></div>
+
+            <section className="space-y-3">
+              <h2 className="text-lg sm:text-xl font-semibold text-white">9. Changes to these Terms</h2>
               <p className="text-sm sm:text-base leading-relaxed text-indigo-200/70">
                 We may update these Terms from time to time. Changes take effect when posted
                 on this page, and the &quot;Last updated&quot; date above will reflect the most recent
@@ -176,7 +230,7 @@ export default function Terms() {
             <div className="h-px bg-white/5"></div>
 
             <section className="space-y-3">
-              <h2 className="text-lg sm:text-xl font-semibold text-white">9. Contact</h2>
+              <h2 className="text-lg sm:text-xl font-semibold text-white">10. Contact</h2>
               <p className="text-sm sm:text-base leading-relaxed text-indigo-200/70">
                 If you have any questions about these Terms, please contact us at{' '}
                 <a href="mailto:vishnuthulasi9699@gmail.com" className="text-indigo-400 hover:text-indigo-300 underline underline-offset-2 break-all">
