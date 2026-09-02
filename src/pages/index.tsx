@@ -564,6 +564,24 @@ function Home() {
                 <span className="mx-3 text-indigo-200/20">•</span>
 
                 <Link
+                  href="/pricing"
+                  className="hover:text-indigo-300 transition-colors underline underline-offset-2"
+                >
+                  Pricing
+                </Link>
+
+                <span className="mx-3 text-indigo-200/20">•</span>
+
+                <Link
+                  href="/refund-policy"
+                  className="hover:text-indigo-300 transition-colors underline underline-offset-2"
+                >
+                  Refunds
+                </Link>
+
+                <span className="mx-3 text-indigo-200/20">•</span>
+
+                <Link
                   href="/privacy-policy"
                   className="hover:text-indigo-300 transition-colors underline underline-offset-2"
                 >
