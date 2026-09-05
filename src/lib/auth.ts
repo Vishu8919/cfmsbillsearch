@@ -42,6 +42,53 @@ export function clearToken() {
 }
 
 // ── Low-level request helper ──
+/**
+ * An HTTP error that keeps its status code and response body.
+ *
+ * request() previously threw a bare Error carrying only a message string,
+ * which discarded the status. That was fine while every failure was "show the
+ * message" -- but billing introduces 402, which needs different handling from
+ * every other error: it is not a failure, it is an invitation to upgrade.
+ *
+ * Because the backend returns 402 from three separate places -- the daily bill
+ * quota, the saved-batch cap and the tracked-bill cap -- carrying the status
+ * here means one handler covers all three instead of three sets of string
+ * matching against error messages.
+ */
+export class ApiError extends Error {
+  status: number;
+  data: unknown;
+
+  constructor(message: string, status: number, data?: unknown) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.data = data ?? null;
+    // Required for `instanceof` to work when TypeScript targets ES5.
+    Object.setPrototypeOf(this, ApiError.prototype);
+  }
+}
+
+/** Shape of a 402 body. Every 402 the backend emits carries these. */
+export interface QuotaError {
+  error: string;
+  limit?: number;
+  used?: number;
+  current?: number;
+  requested?: number;
+  resetsAt?: string;
+  upgrade?: boolean;
+}
+
+export function isUpgradeRequired(err: unknown): err is ApiError {
+  return err instanceof ApiError && err.status === 402;
+}
+
+export function quotaDetail(err: unknown): QuotaError | null {
+  if (!isUpgradeRequired(err)) return null;
+  return (err.data as QuotaError) ?? null;
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -69,7 +116,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       data && typeof data === 'object' && 'error' in data
         ? String((data as { error: unknown }).error)
         : `Request failed (${res.status})`;
-    throw new Error(errMsg);
+    throw new ApiError(errMsg, res.status, data);
   }
   return data as T;
 }

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Eye, EyeOff } from 'lucide-react'
 import RequireAuth from '../components/RequireAuth'
+import { fetchPlans } from '../lib/billing'
 import AccountBar from '../components/AccountBar'
 import {
   listBatches,
@@ -346,6 +347,21 @@ async function postCheck(body: {
   try { data = await res.json() } catch { /* non-JSON error body */ }
 
   if (!res.ok) {
+    // 402 is not a failure -- it is "you have used your allowance". The
+    // backend returns it from three places (daily bills, saved batches,
+    // tracked bills) with the same body shape, so one branch covers all of
+    // them. Carrying the payload through means the UI can say how many were
+    // used and when it resets, rather than a bare "limit reached".
+    if (res.status === 402) {
+      const err = new Error(data?.error || 'You have used your daily allowance.') as Error & {
+        upgrade?: boolean; used?: number; limit?: number; resetsAt?: string
+      }
+      err.upgrade = true
+      err.used = data?.used
+      err.limit = data?.limit
+      err.resetsAt = data?.resetsAt
+      throw err
+    }
     if (res.status === 429 || res.status === 503) {
       const ahead = typeof data?.queueDepth === 'number' ? data.queueDepth : 0
       throw new Error(
@@ -414,6 +430,11 @@ function BulkCheck() {
   const [retryingBills, setRetryingBills] = useState<Record<string, boolean>>({})
   const [exportingPdf, setExportingPdf] = useState(false)
   const [exportingPdfNotes, setExportingPdfNotes] = useState(false)
+  const [exportingExcel, setExportingExcel] = useState(false)
+  // Excel is a Pro feature, but gating it only bites once billing is switched
+  // on. While BILLING_ENABLED is unset the server reports the "preview" plan
+  // and everyone keeps the behaviour they have today.
+  const [excelAllowed, setExcelAllowed] = useState(true)
 
   // ─── History state ───
   const [history, setHistory] = useState<BatchHistoryItem[]>([])
@@ -934,6 +955,48 @@ function BulkCheck() {
   // Shared generator for both PDF buttons. includeNotes=false -> the original
   // status report; includeNotes=true -> the same report plus every note from
   // every person on each bill (full history, continuous flow).
+  // ─── Export Excel ───
+  // The Pro tier promises "PDF and Excel export". SheetJS is imported on
+  // demand, exactly like jsPDF above, so it never enters the main bundle for
+  // the majority of visitors who only ever check a bill.
+  async function generateExcel() {
+    if (!response) return
+    try {
+      const XLSX = await import('xlsx')
+      const rows = (response.results || []).map((r: BillResult) => ({
+        'Bill Number': r.billNumber ?? '',
+        'Description': r.userDescription ?? '',
+        'Verdict': r.verdict ?? '',
+        'Bill Status': r.billStatus ?? '',
+        'Beneficiary': r.beneficiaryName ?? '',
+        'Net Amount': r.netAmount ?? '',
+        'Pending At': r.pendingAt ?? '',
+        'Pending Action': r.pendingAction ?? '',
+        'Payment Status': r.paymentStatus ?? '',
+        'Payment Ref': r.paymentRef ?? '',
+        'Payment Date': r.paymentDate ?? '',
+        'Latest Note': r.latestNote?.remark ?? '',
+        'Error': r.error ?? '',
+      }))
+      const sheet = XLSX.utils.json_to_sheet(rows)
+      // Without explicit widths every column renders at 8 characters and the
+      // file looks broken on open, which is the first impression of a paid
+      // feature.
+      sheet['!cols'] = [
+        { wch: 16 }, { wch: 26 }, { wch: 14 }, { wch: 20 }, { wch: 28 },
+        { wch: 14 }, { wch: 22 }, { wch: 22 }, { wch: 16 }, { wch: 18 },
+        { wch: 14 }, { wch: 46 }, { wch: 24 },
+      ]
+      const book = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(book, sheet, 'Bill Status')
+      const stamp = new Date().toISOString().slice(0, 10)
+      XLSX.writeFile(book, `cfms-bill-status-${stamp}.xlsx`)
+    } catch (err) {
+      console.error('Excel export failed:', err)
+      setError('Could not create the Excel file.')
+    }
+  }
+
   async function generatePDF(includeNotes: boolean) {
     if (!response) return
     try {
@@ -1163,11 +1226,26 @@ function BulkCheck() {
     setExportingPdf(true)
     try { await generatePDF(false) } finally { setExportingPdf(false) }
   }
+  async function exportExcel() {
+    if (!response) return
+    setExportingExcel(true)
+    try { await generateExcel() } finally { setExportingExcel(false) }
+  }
   async function exportPDFWithNotes() {
     if (!response) return
     setExportingPdfNotes(true)
     try { await generatePDF(true) } finally { setExportingPdfNotes(false) }
   }
+
+  useEffect(() => {
+    let cancelled = false
+    fetchPlans()
+      .then((p) => {
+        if (!cancelled) setExcelAllowed(!p.billingEnabled || p.entitlements.excelExport)
+      })
+      .catch(() => { /* fail open: never hide a feature because a call failed */ })
+    return () => { cancelled = true }
+  }, [])
 
   // ─── Helpers ───
   const formatRelative = (ts: number) => {
@@ -1403,6 +1481,21 @@ function BulkCheck() {
                       <><FaSpinner className="animate-spin" /> PDF + Notes…</>
                     ) : (
                       <><FaFileDownload /> PDF with Notes</>
+                    )}
+                  </button>
+                )}
+                {response && excelAllowed && (
+                  <button
+                    type="button"
+                    onClick={exportExcel}
+                    disabled={exportingExcel}
+                    className="px-5 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-indigo-100 border border-white/10 transition flex items-center gap-2 disabled:opacity-60 disabled:cursor-wait"
+                    title="Download these results as an Excel spreadsheet"
+                  >
+                    {exportingExcel ? (
+                      <><FaSpinner className="animate-spin" /> Excel…</>
+                    ) : (
+                      <><FaFileDownload /> Excel</>
                     )}
                   </button>
                 )}

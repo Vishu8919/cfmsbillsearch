@@ -9,8 +9,10 @@
 // fine, because it flips exactly once, on the day KYC clears.
 import Head from 'next/head'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
+import { useAuth } from '../context/AuthContext'
+import { fetchPlans, payOnce, startAutopay, type PlansResponse } from '../lib/billing'
 
 const BILLING_ENABLED = process.env.NEXT_PUBLIC_BILLING_ENABLED === '1'
 
@@ -62,6 +64,50 @@ function Tick() {
 
 export default function Pricing() {
   const [period, setPeriod] = useState<Period>('monthly')
+  const [autopay, setAutopay] = useState(true)
+  const { user, refresh } = useAuth()
+  const [server, setServer] = useState<PlansResponse | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [done, setDone] = useState(false)
+
+  // The price list is fetched rather than trusted from the constants above,
+  // because the department rate depends on a verification record only the
+  // server can see. The constants are the pre-login display; this is truth.
+  const load = useCallback(async () => {
+    if (!user) return
+    try {
+      setServer(await fetchPlans())
+    } catch {
+      /* falls back to the public prices already rendered */
+    }
+  }, [user])
+
+  useEffect(() => { void load() }, [load])
+
+  const verified = server?.tier === 'department'
+  const live = (server?.billingEnabled ?? BILLING_ENABLED) && !!user
+
+  async function buy() {
+    setError(null)
+    setBusy(true)
+    try {
+      if (autopay) {
+        await startAutopay(period, { name: user?.username, email: user?.email })
+      } else {
+        await payOnce(period, { name: user?.username, email: user?.email })
+      }
+      setDone(true)
+      await refresh?.()
+      await load()
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Payment could not be completed.'
+      // Dismissing the Razorpay modal is a choice, not an error to shout about.
+      setError(msg === 'Payment cancelled.' || msg === 'Setup cancelled.' ? null : msg)
+    } finally {
+      setBusy(false)
+    }
+  }
 
   const pub = PRICES.public[period]
   const dept = PRICES.department[period]
@@ -211,13 +257,48 @@ export default function Pricing() {
                   </li>
                 ))}
               </ul>
-              <button
-                type="button"
-                disabled
-                className="mt-7 w-full rounded-xl bg-indigo-500/40 px-4 py-2.5 text-sm text-white/70 cursor-not-allowed"
-              >
-                {BILLING_ENABLED ? 'Coming soon' : 'Payments open soon'}
-              </button>
+              {!live ? (
+                <button
+                  type="button"
+                  disabled
+                  className="mt-7 w-full rounded-xl bg-indigo-500/40 px-4 py-2.5 text-sm text-white/70 cursor-not-allowed"
+                >
+                  {user ? 'Payments open soon' : 'Log in to subscribe'}
+                </button>
+              ) : done ? (
+                <Link
+                  href="/settings/billing"
+                  className="mt-7 block text-center rounded-xl bg-emerald-500/80 hover:bg-emerald-500 px-4 py-2.5 text-sm text-white transition-colors"
+                >
+                  You&apos;re on Pro — view billing
+                </Link>
+              ) : (
+                <>
+                  <label className="mt-6 flex items-start gap-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={autopay}
+                      onChange={(e) => setAutopay(e.target.checked)}
+                      className="mt-0.5 accent-indigo-500"
+                    />
+                    <span className="text-xs text-indigo-200/70">
+                      Renew automatically. You are notified 24 hours before each charge
+                      and can cancel any time. Untick to pay just once.
+                    </span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={buy}
+                    disabled={busy}
+                    className="mt-4 w-full rounded-xl bg-indigo-500 hover:bg-indigo-400 disabled:bg-indigo-500/40 disabled:cursor-not-allowed px-4 py-2.5 text-sm text-white transition-colors"
+                  >
+                    {busy ? 'Opening payment…' : `Get Pro — \u20B9${dept && verified ? dept : pub}${suffix}`}
+                  </button>
+                </>
+              )}
+              {error && (
+                <p className="mt-3 text-xs text-red-300/90">{error}</p>
+              )}
             </motion.div>
           </div>
 
@@ -248,6 +329,21 @@ export default function Pricing() {
             <p className="text-xs text-indigo-300/50">
               Verification is needed once. Approval applies to every later renewal.
             </p>
+            {user && (
+              verified ? (
+                <p className="text-sm text-emerald-300/80">
+                  Your department status is verified — the discounted rate is applied
+                  automatically at checkout.
+                </p>
+              ) : (
+                <Link
+                  href="/settings/department"
+                  className="inline-block rounded-xl border border-white/15 px-5 py-2.5 text-sm text-indigo-100 hover:bg-white/5 transition-colors"
+                >
+                  Get verified
+                </Link>
+              )
+            )}
           </motion.div>
 
           {/* Payment options */}
