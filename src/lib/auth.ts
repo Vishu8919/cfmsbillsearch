@@ -149,6 +149,16 @@ export async function fetchMe(): Promise<{ user: AuthUser }> {
 }
 
 // ── Security questions & password reset ──
+export async function changePasswordRequest(input: {
+  currentPassword: string;
+  newPassword: string;
+}): Promise<{ ok: boolean; token: string; user: AuthUser; message: string }> {
+  return request('/api/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
 export interface SecurityQuestion {
   id: string;
   label: string;

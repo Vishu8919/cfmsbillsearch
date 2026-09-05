@@ -7,7 +7,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaUserCircle, FaSignOutAlt, FaUserShield, FaChevronDown, FaSignInAlt, FaBell } from 'react-icons/fa';
+import { FaUserCircle, FaSignOutAlt, FaUserShield, FaChevronDown, FaSignInAlt, FaBell, FaKey } from 'react-icons/fa';
 import { fetchTracking } from '../lib/auth';
 import { useAuth } from '../context/AuthContext';
 
@@ -113,6 +113,15 @@ export default function AccountBar() {
                   {unseen}
                 </span>
               )}
+            </Link>
+
+            <Link
+              href="/settings/password"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2 w-full text-left px-2 py-2 rounded-lg text-sm text-indigo-100 hover:bg-white/10 transition"
+            >
+              <FaKey className="w-4 h-4 text-indigo-300" />
+              Change Password
             </Link>
 
             {user.role === 'admin' && (
