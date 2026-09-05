@@ -116,6 +116,29 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       data && typeof data === 'object' && 'error' in data
         ? String((data as { error: unknown }).error)
         : `Request failed (${res.status})`;
+
+    // ── Dead session, mid-use ──
+    //
+    // Expiry used to be handled only on page load, in AuthContext.restore().
+    // A token dying while someone was already working produced a raw error
+    // string in a form, the UI still showing them logged in, and a dead token
+    // sitting in localStorage. Shortening the token lifetime from 7 days to 1
+    // makes that path far more common, so it has to be handled properly.
+    //
+    // The `token` guard is essential: a failed LOGIN also returns 401, and
+    // treating that as an expired session would be wrong and confusing. Only
+    // a 401 on a request that actually CARRIED a token means the session died.
+    if (res.status === 401 && token) {
+      clearToken();
+      if (typeof window !== 'undefined') {
+        const passwordChanged =
+          !!data && typeof data === 'object' && 'passwordChanged' in data;
+        window.dispatchEvent(
+          new CustomEvent('auth:expired', { detail: { passwordChanged, message: errMsg } })
+        );
+      }
+    }
+
     throw new ApiError(errMsg, res.status, data);
   }
   return data as T;

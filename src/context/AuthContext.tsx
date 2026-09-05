@@ -58,6 +58,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     restore();
   }, [restore]);
 
+  // Listen for a session that died mid-use.
+  //
+  // request() in lib/auth.ts clears the token and fires this whenever a call
+  // carrying a token comes back 401. Clearing `user` here is what lets
+  // RequireAuth do its normal thing -- redirect to /login with a ?next= back
+  // to wherever they were -- instead of leaving them staring at an error box
+  // while still appearing logged in.
+  useEffect(() => {
+    function onExpired() {
+      setUser(null);
+    }
+    window.addEventListener('auth:expired', onExpired);
+    return () => window.removeEventListener('auth:expired', onExpired);
+  }, []);
+
   const login = useCallback(async (identifier: string, password: string) => {
     const { token, user } = await loginRequest({ identifier, password });
     setToken(token);
