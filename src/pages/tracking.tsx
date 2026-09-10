@@ -8,7 +8,6 @@ import {
   FaCircle, FaRegClock,
 } from 'react-icons/fa'
 import RequireAuth from '../components/RequireAuth'
-import AccountBar from '../components/AccountBar'
 import {
   fetchTracking, updateTracking, untrackBill, refreshTrackedBill, markTrackedSeen,
   refreshAllTracked,
@@ -136,7 +135,6 @@ function TrackingPage() {
         <meta name="robots" content="noindex" />
       </Head>
       <div className="min-h-screen bg-gradient-to-br from-[#0f0c29] via-[#302b63] to-[#24243e] text-white">
-        <AccountBar />
         <div className="max-w-3xl mx-auto px-4 py-8">
           <div className="flex items-start justify-between gap-3 mb-6">
             <div>

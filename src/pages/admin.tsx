@@ -9,7 +9,6 @@ import {
   FaExclamationTriangle, FaStopwatch,
 } from 'react-icons/fa';
 import RequireAuth from '../components/RequireAuth';
-import AccountBar from '../components/AccountBar';
 import { useAuth } from '../context/AuthContext';
 import {
   AuthUser, Role,
@@ -308,7 +307,6 @@ function AdminPanel() {
         className="bg-gradient-to-br from-gray-900 via-indigo-900 to-violet-900 flex flex-col items-center relative"
         style={{ minHeight: '100dvh', paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}
       >
-        <AccountBar />
 
         {/* Background blobs */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">

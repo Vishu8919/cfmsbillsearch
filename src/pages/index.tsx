@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { FaRegTrashAlt, FaTimes, FaHistory, FaLock, FaLayerGroup } from 'react-icons/fa'
 import { motion } from 'framer-motion'
 import { FaPaste } from 'react-icons/fa'
-import AccountBar from '../components/AccountBar'
 import ArticlesSidebar from '../components/ArticlesSidebar'
 import LockedHistoryNotice from '../components/LockedHistoryNotice'
 import { useAuth } from '../context/AuthContext'
@@ -231,7 +230,6 @@ function Home() {
         className="bg-gradient-to-br from-gray-900 via-indigo-900 to-violet-900 flex flex-col items-center relative"
         style={{ minHeight: '100dvh', paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}
       >
-        <AccountBar />
         {/* Background blobs */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-0 left-0 w-64 h-64 bg-violet-900 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-blob"></div>

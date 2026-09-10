@@ -8,7 +8,6 @@ import {
   FaExclamationTriangle, FaLock,
 } from 'react-icons/fa'
 import RequireAuth from '../../components/RequireAuth'
-import AccountBar from '../../components/AccountBar'
 import {
   fetchCredentialStatus, saveCfmsCredentials, deleteCfmsCredentials,
   CredentialStatus,
@@ -86,7 +85,6 @@ function CfmsSettings() {
         <meta name="robots" content="noindex" />
       </Head>
       <div className="min-h-screen bg-gradient-to-br from-[#0f0c29] via-[#302b63] to-[#24243e] text-white">
-        <AccountBar />
         <div className="max-w-2xl mx-auto px-4 py-8">
           <Link href="/tracking" className="text-xs text-indigo-300 hover:text-white">
             ← Back to tracked bills

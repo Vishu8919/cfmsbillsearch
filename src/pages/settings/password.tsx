@@ -11,7 +11,6 @@ import { motion } from 'framer-motion'
 import { Eye, EyeOff } from 'lucide-react'
 import { FaLock, FaSpinner, FaCheckCircle } from 'react-icons/fa'
 import RequireAuth from '../../components/RequireAuth'
-import AccountBar from '../../components/AccountBar'
 import { changePasswordRequest, setToken } from '../../lib/auth'
 
 const MIN_LENGTH = 6
@@ -245,7 +244,6 @@ export default function ChangePasswordPage() {
           <div className="absolute bottom-0 right-0 w-64 h-64 bg-indigo-900 rounded-full mix-blend-screen filter blur-3xl opacity-20"></div>
         </div>
         <RequireAuth>
-          <AccountBar />
           <ChangePassword />
         </RequireAuth>
       </main>

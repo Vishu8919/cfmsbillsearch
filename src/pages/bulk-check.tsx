@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Eye, EyeOff } from 'lucide-react'
 import RequireAuth from '../components/RequireAuth'
 import { fetchPlans } from '../lib/billing'
-import AccountBar from '../components/AccountBar'
 import {
   listBatches,
   createBatch as apiCreateBatch,
@@ -1291,7 +1290,6 @@ function BulkCheck() {
         className="bg-gradient-to-br from-gray-900 via-indigo-900 to-violet-900 flex flex-col items-center relative"
         style={{ minHeight: '100dvh', paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}
       >
-        <AccountBar />
         {/* Background blobs */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-0 left-0 w-64 h-64 bg-violet-900 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-blob"></div>
