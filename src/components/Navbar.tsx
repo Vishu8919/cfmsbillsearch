@@ -1,19 +1,30 @@
 // src/components/Navbar.tsx — the site's single navigation bar.
 //
-// Replaces AccountBar, which was a floating pill fixed at top-left and rendered
-// by only 6 of 19 pages. Everything else had nothing but a "← Back to Home"
-// link. This mounts once in _app.tsx, so every page gets it, including the 11
-// article pages and the admin panel.
+// Mounted once in _app.tsx, so every route gets it: all 19 pages, the 11
+// article pages, and /admin.
 //
-// STICKY, NOT FIXED.
+// ── Design notes ─────────────────────────────────────────────────────────
 //
-// The visible behaviour is what was asked for -- the bar stays pinned to the
-// top of the viewport at all times. The difference is that a sticky element
-// still occupies layout space, so page content starts below it naturally. A
-// `fixed` bar is removed from flow, and every one of the 19 pages sets its own
-// `py-8` on the content wrapper -- 32px, less than this bar is tall -- so a
-// fixed bar would sit on top of every page heading until all 19 were edited to
-// compensate. Sticky gets the same result without touching any of them.
+// The first version read as a separate black strip bolted on top of the page.
+// Three changes fix that:
+//
+// 1. TRANSPARENT AT REST. At the top of the page the bar has no background at
+//    all -- the page's own gradient runs straight through it. The background
+//    and hairline fade in only once you scroll. This does most of the work of
+//    making it feel part of the page rather than sitting on it.
+//
+// 2. CENTRED LINKS, THREE-COLUMN LAYOUT. Brand left, links centred on the
+//    viewport, account right. The old version clustered brand and links
+//    together on the left and left a dead gap in the middle.
+//
+// 3. NO BOXES. Links are small, low-contrast text. The current page is marked
+//    with full-strength white and a 1px underline rather than a filled pill --
+//    a chunky rectangle around one item is what dated the first attempt.
+//
+// STICKY, NOT FIXED: sticky pins to the viewport top exactly like fixed but
+// stays in layout flow. Every page sets its own py-8 (32px) content padding,
+// less than this bar is tall, so a fixed bar would cover 30 page headings
+// until all 30 were edited.
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
@@ -38,15 +49,15 @@ const ROLE_PILL: Record<string, string> = {
   admin: 'bg-purple-500/20 text-purple-200 border-purple-400/30',
 };
 
-// The six destinations people actually navigate to. Policy pages (Terms,
-// Privacy, Refunds) stay in the page footers on purpose -- putting them up here
-// would spend the few slots anyone reads on links nobody clicks twice.
+// Bill Search is deliberately NOT in the primary set. Single-bill search is the
+// main event on the home page, so a nav entry for it sent people to a second,
+// plainer copy of what they had just been given.
 //
-// About and Contact appear in the mobile drawer only: they matter, but not
-// enough to crowd the desktop bar.
+// The page itself stays -- it holds users' saved search history in
+// localStorage and has organic search traffic -- it just stops competing with
+// Home. It remains reachable from the mobile drawer and the page footers.
 const PRIMARY = [
   { href: '/', label: 'Home' },
-  { href: '/bill-search', label: 'Bill Search' },
   { href: '/bulk-check', label: 'Bulk Check' },
   { href: '/tracking', label: 'Tracked Bills' },
   { href: '/articles', label: 'Articles' },
@@ -54,21 +65,39 @@ const PRIMARY = [
 ];
 
 const SECONDARY = [
+  { href: '/bill-search', label: 'Bill Search' },
   { href: '/about', label: 'About' },
   { href: '/contact', label: 'Contact' },
+];
+
+const MENU_ITEMS = [
+  { href: '/tracking', icon: FaBell, label: 'Tracked Bills', badged: true, tone: 'text-indigo-300/80' },
+  { href: '/settings/billing', icon: FaCreditCard, label: 'Billing', badged: false, tone: 'text-indigo-300/80' },
+  { href: '/settings/department', icon: FaIdCard, label: 'Govt. Verification', badged: false, tone: 'text-indigo-300/80' },
+  { href: '/settings/cfms', icon: FaFileInvoiceDollar, label: 'CFMS Credentials', badged: false, tone: 'text-indigo-300/80' },
+  { href: '/settings/password', icon: FaKey, label: 'Change Password', badged: false, tone: 'text-indigo-300/80' },
 ];
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const router = useRouter();
-  const [menuOpen, setMenuOpen] = useState(false);   // account dropdown
-  const [drawerOpen, setDrawerOpen] = useState(false); // mobile nav
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const [unseen, setUnseen] = useState(0);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Unseen tracked-bill updates. Carried over from AccountBar unchanged,
-  // including the silent failure: tracking is an enhancement and must never
-  // break navigation.
+  // Drives the transparent-to-solid transition. `passive` because this fires
+  // on every scroll frame and must never block the scroll itself.
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll(); // reloading mid-page must not start out transparent
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Unseen tracked-bill updates. Silent on failure: tracking is an
+  // enhancement and must never break navigation.
   useEffect(() => {
     if (!user) { setUnseen(0); return; }
     let cancelled = false;
@@ -86,16 +115,14 @@ export default function Navbar() {
     return () => document.removeEventListener('mousedown', handler);
   }, [menuOpen]);
 
-  // Close everything on navigation. Without this the mobile drawer stays open
-  // over the page you just moved to.
+  // Close on navigation, or the drawer stays open over the page you just
+  // moved to.
   useEffect(() => {
     const close = () => { setDrawerOpen(false); setMenuOpen(false); };
     router.events.on('routeChangeComplete', close);
     return () => router.events.off('routeChangeComplete', close);
   }, [router.events]);
 
-  // Escape closes the drawer -- expected on mobile, and the only way out for
-  // anyone navigating by keyboard.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { setDrawerOpen(false); setMenuOpen(false); }
@@ -104,133 +131,153 @@ export default function Navbar() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  // "/" matches only itself; everything else matches its subtree, so
-  // /articles/<slug> still highlights Articles.
+  // '/' matches only itself; everything else matches its subtree, so
+  // /articles/<slug> still marks Articles as current.
   const isActive = (href: string) =>
     href === '/' ? router.pathname === '/' : router.pathname.startsWith(href);
 
-  const linkClass = (href: string) =>
-    'px-3 py-1.5 rounded-lg text-sm transition-colors ' +
-    (isActive(href)
-      ? 'bg-white/10 text-white'
-      : 'text-indigo-200/75 hover:text-white hover:bg-white/5');
+  const solid = scrolled || drawerOpen;
 
   return (
     <header
-      className="sticky top-0 z-50 bg-gray-900/85 backdrop-blur-md border-b border-white/10"
+      className={
+        'sticky top-0 z-50 transition-colors duration-300 ' +
+        (solid
+          ? 'bg-[#12102a]/80 backdrop-blur-xl border-b border-white/[0.07]'
+          : 'bg-transparent border-b border-transparent')
+      }
       style={{ paddingTop: 'env(safe-area-inset-top)' }}
     >
-      <nav className="max-w-6xl mx-auto px-3 sm:px-4 h-14 flex items-center gap-2">
+      <nav className="relative max-w-6xl mx-auto px-4 sm:px-6 h-12 flex items-center">
 
-        {/* Brand */}
+        {/* Left — brand */}
         <Link
           href="/"
-          className="flex items-center gap-2 shrink-0 mr-1"
+          className="flex items-center gap-2 shrink-0 group"
           aria-label="CFMS Bills Status — home"
         >
-          <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold">
+          <span className="w-6 h-6 rounded-md bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-[10px] font-bold tracking-tight">
             CF
           </span>
-          <span className="hidden sm:inline text-sm font-semibold text-white tracking-tight">
+          <span className="text-[13px] font-medium text-white/90 group-hover:text-white transition-colors tracking-tight whitespace-nowrap">
             CFMS Bills Status
           </span>
         </Link>
 
-        {/* Desktop links */}
-        <div className="hidden md:flex items-center gap-0.5 flex-1">
-          {PRIMARY.map((item) => (
-            <Link key={item.href} href={item.href} className={linkClass(item.href)}>
-              {item.label}
-              {item.href === '/tracking' && unseen > 0 && (
-                <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/25 text-amber-200 border border-amber-400/40">
-                  {unseen}
+        {/* Centre — links.
+            Absolutely centred on the bar rather than laid out between brand and
+            account, so the group does not shift every time a username is a
+            different length. */}
+        <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center">
+          {PRIMARY.map((item) => {
+            const active = isActive(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="relative px-3.5 py-2 text-[13px] tracking-tight whitespace-nowrap"
+              >
+                <span
+                  className={
+                    'transition-colors duration-200 ' +
+                    (active ? 'text-white' : 'text-white/55 hover:text-white/90')
+                  }
+                >
+                  {item.label}
                 </span>
-              )}
-            </Link>
-          ))}
+                {item.href === '/tracking' && unseen > 0 && (
+                  <span className="ml-1.5 align-middle text-[10px] px-1.5 py-0.5 rounded-full bg-amber-400/20 text-amber-200">
+                    {unseen}
+                  </span>
+                )}
+                {/* Active marker: a hairline that slides between items, not a
+                    filled pill. */}
+                {active && (
+                  <motion.span
+                    layoutId="nav-underline"
+                    className="absolute left-3.5 right-3.5 bottom-0 h-px bg-white/60"
+                    transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+                  />
+                )}
+              </Link>
+            );
+          })}
         </div>
 
-        <div className="flex-1 md:hidden" />
+        <div className="flex-1" />
 
-        {/* Account */}
+        {/* Right — account */}
         {user ? (
           <div ref={menuRef} className="relative shrink-0">
             <button
               onClick={() => setMenuOpen((o) => !o)}
               aria-expanded={menuOpen}
               aria-haspopup="menu"
-              className="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-full pl-2 pr-2.5 py-1.5 text-indigo-100 transition"
+              className="flex items-center gap-1.5 py-1.5 pl-1.5 pr-2 rounded-full text-white/70 hover:text-white hover:bg-white/[0.06] transition-colors"
             >
-              <FaUserCircle className="w-5 h-5 text-indigo-300" />
-              <span className="hidden sm:inline text-sm font-medium max-w-[110px] truncate">
+              <FaUserCircle className="w-[18px] h-[18px]" />
+              <span className="hidden sm:inline text-[13px] max-w-[100px] truncate tracking-tight">
                 {user.username}
               </span>
-              {unseen > 0 && (
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" title={`${unseen} tracked bill update(s)`} />
-              )}
-              <FaChevronDown className={`w-2.5 h-2.5 text-indigo-300 transition-transform ${menuOpen ? 'rotate-180' : ''}`} />
+              {unseen > 0 && <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />}
+              <FaChevronDown
+                className={`w-2.5 h-2.5 transition-transform duration-200 ${menuOpen ? 'rotate-180' : ''}`}
+              />
             </button>
 
             <AnimatePresence>
               {menuOpen && (
                 <motion.div
-                  initial={{ opacity: 0, y: -8, scale: 0.97 }}
+                  initial={{ opacity: 0, y: -6, scale: 0.98 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -8, scale: 0.97 }}
-                  transition={{ duration: 0.15 }}
+                  exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                  transition={{ duration: 0.14 }}
                   role="menu"
-                  className="absolute right-0 mt-2 w-60 bg-gradient-to-b from-indigo-900/95 to-violet-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 p-3"
+                  className="absolute right-0 mt-2 w-60 rounded-2xl border border-white/10 bg-[#151233]/95 backdrop-blur-2xl shadow-2xl shadow-black/40 p-2"
                 >
-                  <div className="px-2 py-2 border-b border-white/10 mb-2">
-                    <div className="text-sm text-white font-medium truncate">{user.username}</div>
-                    <div className="text-xs text-indigo-300/70 truncate">{user.email}</div>
-                    <span className={`inline-block mt-2 text-[10px] px-2 py-0.5 rounded-full border ${ROLE_PILL[user.role] || ROLE_PILL.customer}`}>
+                  <div className="px-2.5 py-2 mb-1.5 border-b border-white/[0.07]">
+                    <div className="text-[13px] text-white font-medium truncate">{user.username}</div>
+                    <div className="text-[11px] text-white/45 truncate">{user.email}</div>
+                    <span
+                      className={`inline-block mt-2 text-[10px] px-2 py-0.5 rounded-full border ${ROLE_PILL[user.role] || ROLE_PILL.customer}`}
+                    >
                       {ROLE_LABEL[user.role] || user.role}
                     </span>
                   </div>
 
-                  <Link href="/tracking" className="flex items-center gap-2 w-full px-2 py-2 rounded-lg text-sm text-indigo-100 hover:bg-white/10 transition">
-                    <FaBell className="w-4 h-4 text-indigo-300" />
-                    Tracked Bills
-                    {unseen > 0 && (
-                      <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/25 text-amber-200 border border-amber-400/40">
-                        {unseen}
-                      </span>
-                    )}
-                  </Link>
-
-                  <Link href="/settings/billing" className="flex items-center gap-2 w-full px-2 py-2 rounded-lg text-sm text-indigo-100 hover:bg-white/10 transition">
-                    <FaCreditCard className="w-4 h-4 text-indigo-300" />
-                    Billing
-                  </Link>
-
-                  <Link href="/settings/department" className="flex items-center gap-2 w-full px-2 py-2 rounded-lg text-sm text-indigo-100 hover:bg-white/10 transition">
-                    <FaIdCard className="w-4 h-4 text-indigo-300" />
-                    Govt. Verification
-                  </Link>
-
-                  <Link href="/settings/cfms" className="flex items-center gap-2 w-full px-2 py-2 rounded-lg text-sm text-indigo-100 hover:bg-white/10 transition">
-                    <FaFileInvoiceDollar className="w-4 h-4 text-indigo-300" />
-                    CFMS Credentials
-                  </Link>
-
-                  <Link href="/settings/password" className="flex items-center gap-2 w-full px-2 py-2 rounded-lg text-sm text-indigo-100 hover:bg-white/10 transition">
-                    <FaKey className="w-4 h-4 text-indigo-300" />
-                    Change Password
-                  </Link>
+                  {MENU_ITEMS.map(({ href, icon: Icon, label, badged, tone }) => (
+                    <Link
+                      key={href}
+                      href={href}
+                      className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-xl text-[13px] text-white/75 hover:text-white hover:bg-white/[0.07] transition-colors"
+                    >
+                      <Icon className={`w-3.5 h-3.5 ${tone}`} />
+                      {label}
+                      {badged && unseen > 0 && (
+                        <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-amber-400/20 text-amber-200">
+                          {unseen}
+                        </span>
+                      )}
+                    </Link>
+                  ))}
 
                   {user.role === 'admin' && (
-                    <Link href="/admin" className="flex items-center gap-2 w-full px-2 py-2 rounded-lg text-sm text-indigo-100 hover:bg-white/10 transition">
-                      <FaUserShield className="w-4 h-4 text-purple-300" />
+                    <Link
+                      href="/admin"
+                      className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-xl text-[13px] text-white/75 hover:text-white hover:bg-white/[0.07] transition-colors"
+                    >
+                      <FaUserShield className="w-3.5 h-3.5 text-purple-300/80" />
                       Admin Panel
                     </Link>
                   )}
 
+                  <div className="my-1.5 border-t border-white/[0.07]" />
+
                   <button
                     onClick={() => { setMenuOpen(false); logout(); }}
-                    className="flex items-center gap-2 w-full text-left px-2 py-2 rounded-lg text-sm text-red-200 hover:bg-red-500/10 transition"
+                    className="flex items-center gap-2.5 w-full text-left px-2.5 py-2 rounded-xl text-[13px] text-red-300/85 hover:text-red-200 hover:bg-red-500/10 transition-colors"
                   >
-                    <FaSignOutAlt className="w-4 h-4" />
+                    <FaSignOutAlt className="w-3.5 h-3.5" />
                     Log Out
                   </button>
                 </motion.div>
@@ -240,20 +287,20 @@ export default function Navbar() {
         ) : (
           <Link
             href="/login"
-            className="flex items-center gap-2 shrink-0 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-full px-3 py-1.5 text-indigo-100 transition"
+            className="flex items-center gap-1.5 shrink-0 px-3 py-1.5 rounded-full text-[13px] text-white/75 hover:text-white hover:bg-white/[0.06] transition-colors tracking-tight"
           >
-            <FaSignInAlt className="w-3.5 h-3.5 text-indigo-300" />
-            <span className="text-sm font-medium">Log in</span>
+            <FaSignInAlt className="w-3 h-3" />
+            Log in
           </Link>
         )}
 
-        {/* Mobile toggle. Most traffic here is mobile, so this is the primary
-            navigation path rather than an afterthought. */}
+        {/* Mobile toggle. Most traffic here is mobile, so the drawer is the
+            primary navigation path, not a fallback. */}
         <button
           onClick={() => setDrawerOpen((o) => !o)}
           aria-label={drawerOpen ? 'Close menu' : 'Open menu'}
           aria-expanded={drawerOpen}
-          className="md:hidden shrink-0 ml-1 p-2 rounded-lg text-indigo-200 hover:text-white hover:bg-white/5 transition"
+          className="md:hidden shrink-0 ml-0.5 p-2 -mr-1 rounded-lg text-white/70 hover:text-white transition-colors"
         >
           {drawerOpen ? <FaTimes className="w-4 h-4" /> : <FaBars className="w-4 h-4" />}
         </button>
@@ -266,36 +313,37 @@ export default function Navbar() {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.18 }}
-            className="md:hidden overflow-hidden border-t border-white/10 bg-gray-900/95 backdrop-blur-md"
+            transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
+            className="md:hidden overflow-hidden border-t border-white/[0.07]"
           >
-            <div className="px-3 py-3 space-y-1">
-              {PRIMARY.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={
-                    'flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-colors ' +
-                    (isActive(item.href)
-                      ? 'bg-white/10 text-white'
-                      : 'text-indigo-200/75 hover:text-white hover:bg-white/5')
-                  }
-                >
-                  <span>{item.label}</span>
-                  {item.href === '/tracking' && unseen > 0 && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/25 text-amber-200 border border-amber-400/40">
-                      {unseen}
-                    </span>
-                  )}
-                </Link>
-              ))}
+            <div className="px-3 py-2">
+              {PRIMARY.map((item) => {
+                const active = isActive(item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={
+                      'flex items-center justify-between px-3 py-3 rounded-xl text-[15px] transition-colors ' +
+                      (active ? 'text-white bg-white/[0.07]' : 'text-white/65 hover:text-white')
+                    }
+                  >
+                    <span>{item.label}</span>
+                    {item.href === '/tracking' && unseen > 0 && (
+                      <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-amber-400/20 text-amber-200">
+                        {unseen}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
 
-              <div className="pt-2 mt-2 border-t border-white/10 grid grid-cols-2 gap-1">
+              <div className="mt-2 pt-2 border-t border-white/[0.07] flex flex-wrap">
                 {SECONDARY.map((item) => (
                   <Link
                     key={item.href}
                     href={item.href}
-                    className="px-3 py-2 rounded-lg text-sm text-indigo-200/70 hover:text-white hover:bg-white/5 transition-colors"
+                    className="px-3 py-2.5 text-[13px] text-white/50 hover:text-white/85 transition-colors"
                   >
                     {item.label}
                   </Link>
