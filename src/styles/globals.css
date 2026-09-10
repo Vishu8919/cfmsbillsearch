@@ -53,16 +53,17 @@ a {
 @tailwind utilities;
 
 /* ── Global navbar compensation ──────────────────────────────────────────
-   components/Navbar.tsx is sticky and 3rem tall, so it occupies layout
+   components/Navbar.tsx is a sticky floating pill: pt-3 (0.75rem) + h-11
+   (2.75rem) + pb-2 (0.5rem) = 4rem tall, so it occupies layout
    space above every page's <main>.
 
    Every page sets `minHeight: 100dvh` as an INLINE style. Left alone, the
-   document becomes 3rem taller than the viewport and a scrollbar appears on
+   document becomes 4rem taller than the viewport and a scrollbar appears on
    every page, including ones with almost no content.
 
    Inline styles beat stylesheets, so !important is genuinely required here --
    the alternative is editing the same line in all 19 pages plus 11 article
    pages, and having to remember it for every page added afterwards. */
 main {
-  min-height: calc(100dvh - 3rem - env(safe-area-inset-top)) !important;
+  min-height: calc(100dvh - 4rem - env(safe-area-inset-top)) !important;
 }

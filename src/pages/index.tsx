@@ -559,14 +559,6 @@ function Home() {
                   Contact
                 </Link>
 
-                <span className="mx-3 text-indigo-200/20">•</span>
-
-                <Link
-                  href="/bill-search"
-                  className="hover:text-indigo-300 transition-colors underline underline-offset-2"
-                >
-                  Bill Search
-                </Link>
 
                 <span className="mx-3 text-indigo-200/20">•</span>
 
