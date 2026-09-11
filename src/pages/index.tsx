@@ -253,7 +253,10 @@ function Home() {
             <div className="w-full">
 
             {/* Tool column */}
-            <div className="w-full max-w-md mx-auto flex flex-col items-center">
+            {/* Tool column. max-w-md keeps a comfortable single-column
+                measure on mobile; on lg it releases so the two cards can sit
+                side by side inside the content area left by the sidebar. */}
+            <div className="w-full max-w-md lg:max-w-none mx-auto flex flex-col items-center">
 
             {/* Title */}
             <motion.div
@@ -272,11 +275,27 @@ function Home() {
 
             <Backdrop />
 
-            {/* Search Form Card */}
+            {/* The two tools, side by side on desktop and stacked on mobile.
+                items-stretch plus h-full on each card is what makes them the
+                same height whatever their content -- matching shape and size
+                is the whole point of putting them next to each other. */}
+            <div className="w-full grid gap-5 lg:grid-cols-2 items-stretch">
+
+            {/* Search Form Card.
+                Ordering flips on who is looking. Anonymous visitors mostly
+                arrive from Google wanting ONE bill, so single search leads for
+                them. Signed-in users are the DDOs and section staff who came
+                back to do volume, so bulk leads for them. Both cards are always
+                present -- only the order changes, via CSS `order` on this
+                flex-col, so no JSX moves and nothing can diverge between the
+                two paths. */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="w-full bg-gradient-to-br from-indigo-900/80 to-purple-900/80 backdrop-blur-sm p-6 sm:p-8 rounded-2xl shadow-2xl border border-white/20 relative"
+              className={
+                'w-full h-full flex flex-col bg-gradient-to-br from-indigo-900/80 to-purple-900/80 backdrop-blur-sm p-6 sm:p-8 rounded-2xl shadow-2xl border border-white/20 relative ' +
+                (user ? 'order-2 lg:order-1' : 'order-1')
+              }
             >
               <div className="absolute -top-2 -left-2 w-4 h-4 rounded-full bg-purple-400/50"></div>
               <div className="absolute -bottom-2 -right-2 w-4 h-4 rounded-full bg-indigo-400/50"></div>
@@ -353,59 +372,117 @@ function Home() {
               </form>
             </motion.div>
 
-            {/* Bulk check link — highlighted */}
+            {/* Bulk Check — the hero product, now level with single search
+                rather than tucked underneath it.
+
+                Copy is back to the original wording. The only styling point
+                worth keeping from the rewrite: the fill is SOLID and more
+                saturated. The version before that was indigo/purple at 30%
+                opacity on an indigo/purple page, which is why it read as
+                barely visible -- nothing at 30% opacity separates from a
+                background in its own hue, at any size. */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="w-full mt-5"
+              className={
+                'w-full h-full flex flex-col ' +
+                (user ? 'order-1 lg:order-2' : 'order-2')
+              }
             >
               <Link
                 href={user ? '/bulk-check' : '/login?next=%2Fbulk-check'}
-                className="relative block w-full bg-gradient-to-br from-indigo-600/30 to-purple-600/30 hover:from-indigo-600/40 hover:to-purple-600/40 backdrop-blur-sm border border-purple-400/40 hover:border-purple-400/60 rounded-2xl p-4 sm:p-5 transition-all group shadow-lg shadow-purple-900/20"
+                className="relative flex-1 flex overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500 via-violet-500 to-fuchsia-600 p-[1.5px] shadow-2xl shadow-violet-950/40 hover:shadow-violet-900/50 transition-shadow group"
               >
-                {/* POPULAR badge */}
-                <span className="absolute -top-2.5 left-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white text-[10px] font-bold uppercase tracking-wide px-2.5 py-0.5 rounded-full shadow-md">
-                  Popular
-                </span>
+                {/* The 1.5px of padding on the parent becomes a gradient
+                    hairline around this inner surface -- brighter than a
+                    border-colour can be, and it survives hover. */}
+                <div className="relative flex-1 flex flex-col rounded-[14px] bg-gradient-to-br from-indigo-600 via-violet-600 to-fuchsia-700 p-6 sm:p-8">
 
-                <div className="flex items-center gap-3">
-                  {/* Icon */}
-                  <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center shadow-md">
-                    <FaLayerGroup className="w-5 h-5 text-white" />
-                  </div>
+                  {/* Sheen, sweeping once on hover. Decoration only, and
+                      pointer-events-none so it never swallows the click. */}
+                  <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:translate-x-full transition-transform duration-700 ease-out" />
 
-                  {/* Text */}
-                  <div className="flex-1 min-w-0 text-left">
-                    <div className="flex items-center gap-2">
-                      <span className="text-base font-semibold text-white">
+                  <div className="relative flex flex-col h-full">
+                    <div className="flex items-center gap-3">
+                      <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-white/15 ring-1 ring-white/25 flex items-center justify-center">
+                        <FaLayerGroup className="w-5 h-5 text-white" />
+                      </div>
+                      <span className="text-[10px] font-bold uppercase tracking-wide text-white bg-white/20 px-2.5 py-0.5 rounded-full">
+                        Popular
+                      </span>
+                    </div>
+
+                    <div className="mt-4 flex items-center gap-2">
+                      <span className="text-base sm:text-lg font-semibold text-white leading-snug">
                         Check Multiple Bills at Once
                       </span>
-                      {!user && <FaLock className="w-3 h-3 text-purple-300/80 flex-shrink-0" />}
+                      {!user && <FaLock className="w-3 h-3 text-white/70 flex-shrink-0" />}
                     </div>
-                    <div className="text-xs text-indigo-200/80 mt-0.5">
+
+                    <p className="mt-1.5 text-[13px] text-white/85 leading-relaxed">
                       {user
                         ? 'Up to 30 bills in one go · Payment details · CSV export'
                         : 'Log in to check up to 30 bills together — with full payment details'}
+                    </p>
+
+                    {/* Features. The subtitle above is a single line; this is
+                        what the tool actually gives you, which is the argument
+                        for choosing it over searching one bill at a time. */}
+                    <ul className="mt-5 space-y-2.5">
+                      {[
+                        'Paste up to 30 bill numbers together',
+                        'Full payment details and objection reasons',
+                        'Save and rename batches to re-run later',
+                        'Export results to PDF or Excel',
+                        'Track bills for status changes',
+                      ].map((feature) => (
+                        <li key={feature} className="flex items-start gap-2.5 text-[13px] text-white/90">
+                          <svg
+                            className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-white/80"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            aria-hidden="true"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M16.7 5.3a1 1 0 0 1 0 1.4l-7.5 7.5a1 1 0 0 1-1.4 0L3.3 9.7a1 1 0 1 1 1.4-1.4l3.8 3.8 6.8-6.8a1 1 0 0 1 1.4 0Z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    {/* mt-auto pins this to the bottom, so the button lines up
+                        with Search Bill in the card alongside. */}
+                    <div className="mt-auto pt-6">
+                      <span className="flex items-center justify-center gap-2 w-full bg-white/20 group-hover:bg-white/30 ring-1 ring-white/30 text-white font-medium rounded-xl py-3 transition-colors">
+                        {user ? 'Open Bulk Check' : 'Log in to Bulk Check'}
+                        <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
+                      </span>
                     </div>
                   </div>
-
-                  {/* Arrow */}
-                  <span className="flex-shrink-0 text-purple-200 text-lg group-hover:translate-x-1 transition-transform">
-                    →
-                  </span>
                 </div>
               </Link>
+            </motion.div>
 
-              {/* How it works link */}
-              <div className="text-center mt-2">
-                <Link
-                  href="/articles/bulk-cfms-bill-check-guide"
-                  className="text-xs text-indigo-300/70 hover:text-indigo-200 underline underline-offset-2 transition-colors"
-                >
-                  How does bulk checking work? →
-                </Link>
-              </div>
+            </div>{/* end two-up grid */}
+
+            {/* How it works — under both cards now, not attached to one. */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+              className="w-full text-center mt-3"
+            >
+              <Link
+                href="/articles/bulk-cfms-bill-check-guide"
+                className="text-xs text-indigo-300/70 hover:text-indigo-200 underline underline-offset-2 transition-colors"
+              >
+                How does bulk checking work? &rarr;
+              </Link>
             </motion.div>
 
             </div>{/* end Tool column */}
