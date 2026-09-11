@@ -139,8 +139,8 @@ export default function Navbar() {
       : 'bg-white/5 border-white/10 shadow-md shadow-black/10');
 
   return (
-    <header
-      className="sticky top-0 z-50 pt-3 pb-2 px-3 sm:px-4"
+        <header
+      className="sticky top-0 z-50 pt-3 pb-2 px-3 sm:px-4 bg-transparent"
       style={{ paddingTop: 'calc(0.75rem + env(safe-area-inset-top))' }}
     >
       {/* Desktop pill */}
