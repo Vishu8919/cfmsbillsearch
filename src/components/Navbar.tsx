@@ -52,7 +52,7 @@ import {
   FaUserCircle, FaSignOutAlt, FaUserShield, FaChevronDown, FaSignInAlt,
   FaBell, FaKey, FaBars, FaTimes, FaIdCard, FaCreditCard, FaFileInvoiceDollar,
 } from 'react-icons/fa';
-import { fetchTracking } from '../lib/auth';
+import { fetchTracking, AuthUser } from '../lib/auth';
 import { useAuth } from '../context/AuthContext';
 
 const ROLE_LABEL: Record<string, string> = {
@@ -73,6 +73,7 @@ const ROLE_PILL: Record<string, string> = {
 const PRIMARY = [
   { href: '/', label: 'Home' },
   { href: '/bulk-check', label: 'Bulk Check' },
+  { href: '/salary-calculator', label: 'Salary Calculator' },
   { href: '/tracking', label: 'Tracked Bills' },
   { href: '/articles', label: 'Articles' },
   { href: '/pricing', label: 'Pricing' },
@@ -94,11 +95,9 @@ const MENU_ITEMS = [
 export default function Navbar() {
   const { user, logout } = useAuth();
   const router = useRouter();
-  const [menuOpen, setMenuOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [unseen, setUnseen] = useState(0);
-  const menuRef = useRef<HTMLDivElement>(null);
 
   // `passive` because this fires on every scroll frame and must never block
   // the scroll itself.
@@ -121,22 +120,14 @@ export default function Navbar() {
   }, [user]);
 
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
-    };
-    if (menuOpen) document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [menuOpen]);
-
-  useEffect(() => {
-    const close = () => { setDrawerOpen(false); setMenuOpen(false); };
+    const close = () => setDrawerOpen(false);
     router.events.on('routeChangeComplete', close);
     return () => router.events.off('routeChangeComplete', close);
   }, [router.events]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { setDrawerOpen(false); setMenuOpen(false); }
+      if (e.key === 'Escape') setDrawerOpen(false);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -242,7 +233,7 @@ export default function Navbar() {
         })}
 
         <div className="ml-1 pl-1 border-l border-white/10 flex items-center">
-          {user ? <AccountMenu /> : <LoginLink />}
+          {user ? <AccountMenu user={user} logout={logout} unseen={unseen} /> : <LoginLink />}
         </div>
       </nav>
 
@@ -257,7 +248,7 @@ export default function Navbar() {
           <span className="text-[13px] font-medium text-white/90 tracking-tight">CFMS Bills Status</span>
         </Link>
         <div className="flex items-center gap-0.5">
-          {user ? <AccountMenu /> : <LoginLink />}
+          {user ? <AccountMenu user={user} logout={logout} unseen={unseen} /> : <LoginLink />}
           <button
             onClick={() => setDrawerOpen((o) => !o)}
             aria-label={drawerOpen ? 'Close menu' : 'Open menu'}
@@ -315,97 +306,150 @@ export default function Navbar() {
       </AnimatePresence>
     </header>
   );
+}
 
-  function LoginLink() {
-    return (
-      <Link
-        href="/login"
-        className="flex items-center gap-1.5 shrink-0 px-3 py-1.5 rounded-full text-[13px] text-white/75 hover:text-white hover:bg-white/[0.08] transition-colors tracking-tight"
+// ── LoginLink / AccountMenu: module level, not nested ──────────────────────
+//
+// These used to be declared INSIDE Navbar(), which broke the account menu in
+// two compounding ways.
+//
+// 1. A function component declared in a render body is a NEW component type on
+//    every render, so React unmounted and remounted the subtree each time the
+//    parent re-rendered (which the scroll listener causes constantly). Any
+//    state inside it would have been wiped on the next scroll frame.
+//
+// 2. Worse, and the reason the menu links did nothing: `menuRef` lived in the
+//    parent while BOTH navs render an AccountMenu -- the desktop pill and the
+//    mobile pill are always in the DOM, hidden from each other only by
+//    `hidden md:flex` / `md:hidden`. Two instances, one ref: whichever
+//    mounted last (mobile) owned `menuRef.current`. So on desktop the
+//    outside-click handler compared clicks against the MOBILE container,
+//    concluded every click was outside, and closed the menu on mousedown --
+//    unmounting the <Link> before its click event could fire. Admin Panel,
+//    Billing, Govt. Verification, CFMS Credentials and Change Password were
+//    all unreachable from the desktop dropdown, while the mobile dropdown
+//    worked fine.
+//
+// Each instance now owns its own open state and its own ref, so the handler
+// always tests the container the user actually clicked in.
+
+function LoginLink() {
+  return (
+    <Link
+      href="/login"
+      className="flex items-center gap-1.5 shrink-0 px-3 py-1.5 rounded-full text-[13px] text-white/75 hover:text-white hover:bg-white/[0.08] transition-colors tracking-tight"
+    >
+      <FaSignInAlt className="w-3 h-3" />
+      Log in
+    </Link>
+  );
+}
+
+function AccountMenu({ user, logout, unseen }: {
+  user: AuthUser;
+  logout: () => void;
+  unseen: number;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    if (menuOpen) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [menuOpen]);
+
+  // Closing on the parent's routeChangeComplete is no longer possible now that
+  // the state is local, so close on the path it landed on instead.
+  useEffect(() => { setMenuOpen(false); }, [router.asPath]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  return (
+    <div ref={menuRef} className="relative shrink-0">
+      <button
+        onClick={() => setMenuOpen((o) => !o)}
+        aria-expanded={menuOpen}
+        aria-haspopup="menu"
+        className="flex items-center gap-1.5 py-1.5 pl-1.5 pr-2 rounded-full text-white/70 hover:text-white hover:bg-white/[0.08] transition-colors"
       >
-        <FaSignInAlt className="w-3 h-3" />
-        Log in
-      </Link>
-    );
-  }
+        <FaUserCircle className="w-[18px] h-[18px]" />
+        <span className="hidden sm:inline text-[13px] max-w-[92px] truncate tracking-tight">
+          {user.username}
+        </span>
+        {unseen > 0 && <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />}
+        <FaChevronDown
+          className={`w-2.5 h-2.5 transition-transform duration-200 ${menuOpen ? 'rotate-180' : ''}`}
+        />
+      </button>
 
-  function AccountMenu() {
-    return (
-      <div ref={menuRef} className="relative shrink-0">
-        <button
-          onClick={() => setMenuOpen((o) => !o)}
-          aria-expanded={menuOpen}
-          aria-haspopup="menu"
-          className="flex items-center gap-1.5 py-1.5 pl-1.5 pr-2 rounded-full text-white/70 hover:text-white hover:bg-white/[0.08] transition-colors"
-        >
-          <FaUserCircle className="w-[18px] h-[18px]" />
-          <span className="hidden sm:inline text-[13px] max-w-[92px] truncate tracking-tight">
-            {user?.username}
-          </span>
-          {unseen > 0 && <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />}
-          <FaChevronDown
-            className={`w-2.5 h-2.5 transition-transform duration-200 ${menuOpen ? 'rotate-180' : ''}`}
-          />
-        </button>
-
-        <AnimatePresence>
-          {menuOpen && user && (
-            <motion.div
-              initial={{ opacity: 0, y: -6, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -6, scale: 0.98 }}
-              transition={{ duration: 0.14 }}
-              role="menu"
-              className="absolute right-0 mt-3 w-60 rounded-2xl border border-white/10 bg-[#151233]/95 backdrop-blur-2xl shadow-2xl shadow-black/40 p-2"
-            >
-              <div className="px-2.5 py-2 mb-1.5 border-b border-white/[0.07]">
-                <div className="text-[13px] text-white font-medium truncate">{user.username}</div>
-                <div className="text-[11px] text-white/45 truncate">{user.email}</div>
-                <span
-                  className={`inline-block mt-2 text-[10px] px-2 py-0.5 rounded-full border ${ROLE_PILL[user.role] || ROLE_PILL.customer}`}
-                >
-                  {ROLE_LABEL[user.role] || user.role}
-                </span>
-              </div>
-
-              {MENU_ITEMS.map(({ href, icon: Icon, label, badged, tone }) => (
-                <Link
-                  key={href}
-                  href={href}
-                  className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-xl text-[13px] text-white/75 hover:text-white hover:bg-white/[0.07] transition-colors"
-                >
-                  <Icon className={`w-3.5 h-3.5 ${tone}`} />
-                  {label}
-                  {badged && unseen > 0 && (
-                    <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-amber-400/20 text-amber-200">
-                      {unseen}
-                    </span>
-                  )}
-                </Link>
-              ))}
-
-              {user.role === 'admin' && (
-                <Link
-                  href="/admin"
-                  className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-xl text-[13px] text-white/75 hover:text-white hover:bg-white/[0.07] transition-colors"
-                >
-                  <FaUserShield className="w-3.5 h-3.5 text-purple-300/80" />
-                  Admin Panel
-                </Link>
-              )}
-
-              <div className="my-1.5 border-t border-white/[0.07]" />
-
-              <button
-                onClick={() => { setMenuOpen(false); logout(); }}
-                className="flex items-center gap-2.5 w-full text-left px-2.5 py-2 rounded-xl text-[13px] text-red-300/85 hover:text-red-200 hover:bg-red-500/10 transition-colors"
+      <AnimatePresence>
+        {menuOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -6, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.98 }}
+            transition={{ duration: 0.14 }}
+            role="menu"
+            className="absolute right-0 mt-3 w-60 rounded-2xl border border-white/10 bg-[#151233]/95 backdrop-blur-2xl shadow-2xl shadow-black/40 p-2"
+          >
+            <div className="px-2.5 py-2 mb-1.5 border-b border-white/[0.07]">
+              <div className="text-[13px] text-white font-medium truncate">{user.username}</div>
+              <div className="text-[11px] text-white/45 truncate">{user.email}</div>
+              <span
+                className={`inline-block mt-2 text-[10px] px-2 py-0.5 rounded-full border ${ROLE_PILL[user.role] || ROLE_PILL.customer}`}
               >
-                <FaSignOutAlt className="w-3.5 h-3.5" />
-                Log Out
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    );
-  }
+                {ROLE_LABEL[user.role] || user.role}
+              </span>
+            </div>
+
+            {MENU_ITEMS.map(({ href, icon: Icon, label, badged, tone }) => (
+              <Link
+                key={href}
+                href={href}
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-xl text-[13px] text-white/75 hover:text-white hover:bg-white/[0.07] transition-colors"
+              >
+                <Icon className={`w-3.5 h-3.5 ${tone}`} />
+                {label}
+                {badged && unseen > 0 && (
+                  <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-amber-400/20 text-amber-200">
+                    {unseen}
+                  </span>
+                )}
+              </Link>
+            ))}
+
+            {user.role === 'admin' && (
+              <Link
+                href="/admin"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-xl text-[13px] text-white/75 hover:text-white hover:bg-white/[0.07] transition-colors"
+              >
+                <FaUserShield className="w-3.5 h-3.5 text-purple-300/80" />
+                Admin Panel
+              </Link>
+            )}
+
+            <div className="my-1.5 border-t border-white/[0.07]" />
+
+            <button
+              onClick={() => { setMenuOpen(false); logout(); }}
+              className="flex items-center gap-2.5 w-full text-left px-2.5 py-2 rounded-xl text-[13px] text-red-300/85 hover:text-red-200 hover:bg-red-500/10 transition-colors"
+            >
+              <FaSignOutAlt className="w-3.5 h-3.5" />
+              Log Out
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
 }
