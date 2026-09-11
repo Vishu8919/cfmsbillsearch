@@ -53,17 +53,26 @@ a {
 @tailwind utilities;
 
 /* ── Global navbar compensation ──────────────────────────────────────────
-   components/Navbar.tsx is a sticky floating pill: pt-3 (0.75rem) + h-11
-   (2.75rem) + pb-2 (0.5rem) = 4rem tall, so it occupies layout
-   space above every page's <main>.
+   components/Navbar.tsx is a FIXED floating pill: pt-3 (0.75rem) + h-11
+   (2.75rem) + pb-2 (0.5rem) = 4rem tall.
 
-   Every page sets `minHeight: 100dvh` as an INLINE style. Left alone, the
-   document becomes 4rem taller than the viewport and a scrollbar appears on
-   every page, including ones with almost no content.
+   Fixed, not sticky, on purpose. A sticky header is a sibling above each
+   page's <main>, and the gradient lives on that <main> -- so the 4rem of
+   flow it occupied showed the flat body colour (#111827) as a dark band
+   across the top, with the to-br gradient starting below it and already
+   shifted purple on the right. Fixed takes the header out of flow, so the
+   gradient runs to the top of the viewport and passes behind the pill.
 
-   Inline styles beat stylesheets, so !important is genuinely required here --
-   the alternative is editing the same line in all 19 pages plus 11 article
-   pages, and having to remember it for every page added afterwards. */
-main {
-  min-height: calc(100dvh - 4rem - env(safe-area-inset-top)) !important;
+   Nothing reserves space any more, so each page root is padded instead.
+
+   TARGETED AT THE PAGE ROOT, NOT `main`. The previous rule used `main {}`,
+   which silently missed tracking.tsx and settings/cfms.tsx -- neither uses a
+   <main> element. #__next's children are exactly the header plus the page
+   root, so this covers every page whatever element it uses.
+
+   No !important needed. With Tailwind's border-box, padding sits INSIDE the
+   pages' inline `minHeight: 100dvh`, so a page stays exactly one viewport
+   tall and no phantom scrollbar appears. */
+#__next > *:not(header) {
+  padding-top: calc(4rem + env(safe-area-inset-top));
 }

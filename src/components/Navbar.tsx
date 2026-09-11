@@ -16,17 +16,33 @@
 // pill firms up very slightly (white/5 -> white/[0.08], heavier shadow), just
 // enough to hold its edge against busy content underneath.
 //
-// ── Layout, and why sticky ───────────────────────────────────────────────
+// ── Layout: FIXED, and why it changed from sticky ────────────────────────
 //
-// STICKY, NOT FIXED. Sticky pins to the viewport top exactly like fixed but
-// stays in layout flow. Every page sets its own py-8 (32px) content padding,
-// less than this header is tall, so a fixed header would sit on top of 29
-// page headings until all 29 were edited to compensate.
+// A sticky header is a sibling ABOVE each page's <main>, and the gradient
+// lives on that <main>. So the 4rem of flow the header occupied showed the
+// BODY background (#111827) instead -- a flat dark band across the top, with
+// the page's to-br gradient starting below it and already shifted purple on
+// the right. The pill was transparent, but there was nothing behind it to be
+// transparent to.
+//
+// Fixed takes the header out of flow entirely, so every page's gradient runs
+// to the top of the viewport and passes behind the pill. No band, no seam.
+//
+// TWO CONSEQUENCES, both handled:
+//
+//   1. POINTER EVENTS. The header is now a full-width transparent strip
+//      sitting on top of every page. Without pointer-events-none on the
+//      wrapper (and pointer-events-auto on the pills themselves) it would
+//      silently swallow every click in the top 4rem of every page.
+//
+//   2. PAGE PADDING. Nothing reserves space any more, so page content would
+//      start under the pill. globals.css adds padding-top to each page root
+//      -- targeted at `#__next > *:not(header)` rather than `main`, because
+//      tracking.tsx and settings/cfms.tsx do not use a <main> element at all
+//      and a main-only rule silently skipped them.
 //
 // HEIGHT IS LOAD-BEARING: pt-3 (0.75rem) + pill h-11 (2.75rem) + pb-2
-// (0.5rem) = exactly 4rem, and globals.css subtracts 4rem from every page's
-// min-height. Change any of those three and the CSS must change with it, or
-// every page gains a phantom scrollbar.
+// (0.5rem) = 4rem, and globals.css pads every page by the same 4rem.
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
@@ -139,20 +155,53 @@ export default function Navbar() {
       : 'bg-white/5 border-white/10 shadow-md shadow-black/10');
 
   return (
-        <header
-      className="sticky top-0 z-50 pt-3 pb-2 px-3 sm:px-4 bg-transparent"
+    <header
+      className="fixed top-0 left-0 right-0 z-50 pb-2 px-3 sm:px-4 pointer-events-none"
       style={{ paddingTop: 'calc(0.75rem + env(safe-area-inset-top))' }}
     >
-      {/* Desktop pill */}
-      <nav className={`hidden md:flex mx-auto w-fit gap-1 pl-3 pr-2 ${shell}`}>
+      {/* ── Scrim ──────────────────────────────────────────────────────────
+          The pill is short and centred, so the strip either side of it is
+          empty. Being fixed, page text scrolls straight under the header and
+          reappears beside and through the pill -- which reads as the bar
+          floating over broken content rather than sitting above it.
+
+          This fades and blurs whatever passes underneath.
+
+          It is a GRADIENT to transparent, not a solid band, and that choice is
+          deliberate: a solid full-width strip is exactly what produced the
+          hard dark line reported earlier. A fade has no edge to notice.
+
+          6rem tall against a 4rem header, so the fade has room to finish below
+          the pill. Absolutely positioned, so it adds no layout height and the
+          4rem padding rule in globals.css still holds exactly.
+
+          aria-hidden: pure decoration. Inside the pointer-events-none
+          wrapper, so it never intercepts a click. */}
+      <div
+        aria-hidden="true"
+        className={
+          'absolute inset-x-0 top-0 h-24 backdrop-blur-md bg-gradient-to-b ' +
+          'from-[#14112f]/90 via-[#14112f]/40 to-transparent ' +
+          'transition-opacity duration-300 ' +
+          (scrolled || drawerOpen ? 'opacity-100' : 'opacity-0')
+        }
+      />
+
+      {/* Desktop pill.
+          `relative` so it paints above the absolutely-positioned scrim -- an
+          unpositioned sibling after an absolute one loses the stacking
+          contest. */}
+      <nav className={`relative hidden md:flex mx-auto w-fit gap-1 pl-3 pr-2 pointer-events-auto ${shell}`}>
         <Link
           href="/"
           className="flex items-center gap-2 shrink-0 group pr-2 mr-1 border-r border-white/10"
           aria-label="CFMS Bills Status — home"
         >
-          <span className="w-6 h-6 rounded-md bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-[10px] font-bold tracking-tight">
-            CF
-          </span>
+          <img
+            src="/favicon.ico"
+            alt="CFMS Bills Status"
+            className="w-6 h-6 rounded-md object-contain shrink-0"
+          />
           <span className="text-[13px] font-medium text-white/90 group-hover:text-white transition-colors tracking-tight whitespace-nowrap">
             CFMS Bills Status
           </span>
@@ -198,11 +247,13 @@ export default function Navbar() {
       </nav>
 
       {/* Mobile pill */}
-      <nav className={`md:hidden mx-auto w-full max-w-md justify-between pl-3 pr-2 ${shell}`}>
+      <nav className={`relative md:hidden mx-auto w-full max-w-md justify-between pl-3 pr-2 pointer-events-auto ${shell}`}>
         <Link href="/" className="flex items-center gap-2 shrink-0" aria-label="CFMS Bills Status — home">
-          <span className="w-6 h-6 rounded-md bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-[10px] font-bold">
-            CF
-          </span>
+          <img
+            src="/favicon.ico"
+            alt="CFMS Bills Status"
+            className="w-6 h-6 rounded-md object-contain shrink-0"
+          />
           <span className="text-[13px] font-medium text-white/90 tracking-tight">CFMS Bills Status</span>
         </Link>
         <div className="flex items-center gap-0.5">
@@ -226,7 +277,7 @@ export default function Navbar() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.18, ease: [0.32, 0.72, 0, 1] }}
-            className="md:hidden mx-auto w-full max-w-md mt-2 rounded-2xl border border-white/10 bg-white/[0.07] backdrop-blur-xl shadow-xl shadow-black/25 p-2"
+            className="relative md:hidden mx-auto w-full max-w-md mt-2 rounded-2xl border border-white/10 bg-white/[0.07] backdrop-blur-xl shadow-xl shadow-black/25 p-2 pointer-events-auto"
           >
             {PRIMARY.map((item) => {
               const active = isActive(item.href);
